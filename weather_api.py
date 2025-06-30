@@ -6,11 +6,16 @@ import json
 
 class WeatherAPI:
     def __init__(self):
-        self.api_key = os.getenv("OPENWEATHER_API_KEY", "demo_key")
+        self.api_key = os.getenv("OPENWEATHER_API_KEY")
         self.base_url = "http://api.openweathermap.org/data/2.5"
+        self.use_fallback = self.api_key is None or self.api_key == "demo_key" or self.api_key == ""
         
     def get_current_weather(self, lat, lon):
         """Get current weather data"""
+        if self.use_fallback:
+            logging.info("Using fallback weather data (no API key configured)")
+            return self._get_fallback_weather()
+            
         try:
             url = f"{self.base_url}/weather"
             params = {
@@ -38,6 +43,10 @@ class WeatherAPI:
     
     def get_forecast(self, lat, lon, days=7):
         """Get weather forecast"""
+        if self.use_fallback:
+            logging.info("Using fallback forecast data (no API key configured)")
+            return self._get_fallback_forecast(days)
+            
         try:
             url = f"{self.base_url}/forecast"
             params = {

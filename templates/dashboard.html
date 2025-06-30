@@ -5,22 +5,47 @@
 {% block content %}
 <div class="container-fluid">
     <div class="row">
-        <!-- Sidebar -->
+        <!-- Enhanced Sidebar -->
         <div class="col-md-3 col-lg-2 sidebar">
             <div class="plant-selector">
-                <h5 class="mb-3">
-                    <i class="fas fa-solar-panel me-2"></i>
-                    Select Plant
-                </h5>
-                <div class="list-group">
+                <div class="sidebar-header mb-4">
+                    <h5 class="mb-0">
+                        <i class="fas fa-solar-panel me-2 text-warning"></i>
+                        Solar Plants
+                    </h5>
+                    <small class="text-muted">VVCE Campus</small>
+                </div>
+                
+                <div class="plant-list">
                     {% for p in all_plants %}
-                    <a href="{{ url_for('dashboard', plant_id=p.id) }}" 
-                       class="list-group-item list-group-item-action {% if p.id == plant.id %}active{% endif %}">
-                        <strong>{{ p.name }}</strong>
-                        <br>
-                        <small class="text-muted">{{ p.location }}</small>
-                    </a>
+                    <div class="plant-item {% if p.id == plant.id %}active{% endif %}" data-plant-id="{{ p.id }}">
+                        <a href="{{ url_for('dashboard', plant_id=p.id) }}" class="plant-link">
+                            <div class="plant-info">
+                                <div class="plant-name">{{ p.name }}</div>
+                                <div class="plant-details">
+                                    <small class="plant-location">
+                                        <i class="fas fa-map-marker-alt me-1"></i>{{ p.location }}
+                                    </small>
+                                    <small class="plant-capacity">
+                                        <i class="fas fa-bolt me-1"></i>{{ p.capacity_mw }} MW
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="plant-status">
+                                <span class="status-indicator online"></span>
+                            </div>
+                        </a>
+                    </div>
                     {% endfor %}
+                </div>
+                
+                <div class="sidebar-footer mt-4">
+                    <div class="total-plants">
+                        <small class="text-muted">
+                            <i class="fas fa-building me-1"></i>
+                            {{ all_plants|length }} Total Plants
+                        </small>
+                    </div>
                 </div>
             </div>
         </div>
@@ -288,14 +313,14 @@
                         <div class="chart-body">
                             <div class="row g-3">
                                 <div class="col-md-6 col-lg-3">
-                                    <button class="btn action-btn w-100" onclick="trainRealisticModel({{ plant.id }})">
+                                    <button class="btn action-btn w-100" onclick="trainRealisticModel('{{ plant.id }}')">
                                         <i class="fas fa-brain me-2"></i>
                                         Train Physics Model
                                         <small class="d-block mt-1 opacity-75">Using real weather data</small>
                                     </button>
                                 </div>
                                 <div class="col-md-6 col-lg-3">
-                                    <button class="btn btn-success action-btn w-100" onclick="generateRealisticPredictions({{ plant.id }})">
+                                    <button class="btn btn-success action-btn w-100" onclick="generateRealisticPredictions('{{ plant.id }}')">
                                         <i class="fas fa-chart-line me-2"></i>
                                         Generate Forecasts
                                         <small class="d-block mt-1 opacity-75">6-month authentic predictions</small>
@@ -304,12 +329,15 @@
                                 <div class="col-md-6 col-lg-3">
                                     <a href="{{ url_for('predictions', plant_id=plant.id) }}" class="btn btn-warning action-btn w-100 text-decoration-none">
                                         <i class="fas fa-chart-bar me-2"></i>
-                                    View 6-Month Predictions
-                                </a>
-                                <button class="btn btn-warning" onclick="refreshWeather({{ plant.id }})">
-                                    <i class="fas fa-sync-alt me-2"></i>
-                                    Refresh Weather
-                                </button>
+                                        View 6-Month Predictions
+                                    </a>
+                                </div>
+                                <div class="col-md-6 col-lg-3">
+                                    <button class="btn btn-warning action-btn w-100" onclick="refreshWeather('{{ plant.id }}')">
+                                        <i class="fas fa-sync-alt me-2"></i>
+                                        Refresh Weather
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -339,10 +367,11 @@
 
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
-<script>
+<script type="text/javascript">
 // Initialize charts when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    initializeCharts({{ plant.id }});
+    const plantId = '{{ plant.id }}';
+    initializeCharts(plantId);
 });
 
 function trainModel(plantId) {

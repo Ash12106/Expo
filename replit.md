@@ -111,6 +111,9 @@ This is a comprehensive machine learning-powered web application for monitoring,
 - June 30, 2025: Enhanced security configuration, removed hardcoded fallback keys
 - June 30, 2025: Fixed ML prediction system errors and stabilized core functionality
 - June 30, 2025: Prepared advanced LSTM architecture for future TensorFlow integration
+- June 30, 2025: Enhanced plant selector UI with modern design and status indicators
+- June 30, 2025: Fixed weather API configuration to use fallback data when no API key provided
+- June 30, 2025: Completed migration with improved UX and error handling
 
 ## User Preferences
 
