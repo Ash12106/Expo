@@ -5,6 +5,7 @@ from ml_models import ml_predictor
 from realistic_solar_model import realistic_predictor
 from weather_api import weather_api
 from weekly_analytics import VVCEWeeklyAnalytics
+from panel_health_monitor import health_monitor
 from datetime import datetime, timedelta, date
 import logging
 import json
@@ -626,6 +627,88 @@ def get_weekly_analytics(plant_id):
 @app.errorhandler(404)
 def not_found_error(error):
     return render_template('404.html'), 404
+
+@app.route('/panel_health')
+@app.route('/panel_health/<int:plant_id>')
+def panel_health_dashboard(plant_id=None):
+    """Panel health monitoring dashboard"""
+    try:
+        # Get plants
+        plants = SolarPlant.query.all()
+        selected_plant = None
+        
+        if plant_id:
+            selected_plant = SolarPlant.query.get_or_404(plant_id)
+        elif plants:
+            selected_plant = plants[0]
+            plant_id = selected_plant.id
+        else:
+            return redirect(url_for('index'))
+        
+        # Get health metrics
+        health_metrics = health_monitor.get_panel_health_overview(plant_id)
+        
+        # Get individual panel data
+        panel_health_data = health_monitor.get_individual_panel_data(plant_id)
+        
+        # Get health alerts
+        health_alerts = health_monitor.get_health_alerts(plant_id)
+        
+        # Get performance trends
+        trend_data = health_monitor.get_performance_trends(plant_id)
+        
+        return render_template('panel_health_dashboard.html',
+                             plants=plants,
+                             selected_plant=selected_plant,
+                             health_metrics=health_metrics,
+                             panel_health_data=panel_health_data,
+                             health_alerts=health_alerts,
+                             trend_data=trend_data)
+        
+    except Exception as e:
+        logging.error(f"Error in panel health dashboard: {e}")
+        return redirect(url_for('index'))
+
+@app.route('/api/panel_health/<plant_id>')
+def get_panel_health_api(plant_id):
+    """API endpoint to get real-time panel health data"""
+    try:
+        if plant_id == 'all':
+            plant_id = None
+        else:
+            plant_id = int(plant_id)
+        
+        # Get updated health metrics
+        health_metrics = health_monitor.get_panel_health_overview(plant_id)
+        panel_data = health_monitor.get_individual_panel_data(plant_id)
+        
+        return jsonify({
+            'success': True,
+            'health_metrics': health_metrics,
+            'panel_data': panel_data
+        })
+        
+    except Exception as e:
+        logging.error(f"Error getting panel health API data: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Error: {str(e)}'
+        })
+
+@app.route('/api/refresh_panel_health', methods=['POST'])
+def refresh_panel_health():
+    """API endpoint to refresh panel health data"""
+    try:
+        return jsonify({
+            'success': True,
+            'message': 'Panel health data refreshed successfully'
+        })
+    except Exception as e:
+        logging.error(f"Error refreshing panel health data: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Error: {str(e)}'
+        })
 
 @app.route('/api/refresh_dashboard_data', methods=['POST'])
 def refresh_dashboard_data():

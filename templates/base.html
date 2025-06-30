@@ -382,6 +382,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'panel_health_dashboard' }}" href="{{ url_for('panel_health_dashboard') }}">
+                            <i class="fas fa-heartbeat"></i>
+                            Panel Health
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {{ 'active' if request.endpoint == 'data_editor' }}" href="{{ url_for('data_editor') }}">
                             <i class="fas fa-database"></i>
                             Data Manager

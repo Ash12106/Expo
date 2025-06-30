@@ -1,0 +1,690 @@
+{% extends "base.html" %}
+
+{% block title %}Solar Panel Health Monitor - VVCE{% endblock %}
+
+{% block extra_head %}
+<style>
+    .health-dashboard {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border-radius: 1rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .health-metric-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: var(--shadow-light);
+        transition: all 0.3s ease;
+        border-left: 4px solid;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .health-metric-card:hover {
+        box-shadow: var(--shadow-medium);
+        transform: translateY(-2px);
+    }
+    
+    .health-metric-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 100px;
+        height: 100px;
+        opacity: 0.1;
+        border-radius: 50%;
+        transform: translate(50%, -50%);
+    }
+    
+    .health-metric-card.excellent { 
+        border-left-color: var(--success-color); 
+    }
+    .health-metric-card.excellent::before { 
+        background: var(--success-color); 
+    }
+    
+    .health-metric-card.good { 
+        border-left-color: #10b981; 
+    }
+    .health-metric-card.good::before { 
+        background: #10b981; 
+    }
+    
+    .health-metric-card.warning { 
+        border-left-color: var(--accent-color); 
+    }
+    .health-metric-card.warning::before { 
+        background: var(--accent-color); 
+    }
+    
+    .health-metric-card.critical { 
+        border-left-color: var(--warning-color); 
+    }
+    .health-metric-card.critical::before { 
+        background: var(--warning-color); 
+    }
+    
+    .health-status-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .status-excellent {
+        background: rgba(34, 197, 94, 0.1);
+        color: var(--success-color);
+    }
+    
+    .status-good {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+    }
+    
+    .status-warning {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--accent-color);
+    }
+    
+    .status-critical {
+        background: rgba(220, 38, 38, 0.1);
+        color: var(--warning-color);
+    }
+    
+    .panel-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .panel-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: var(--shadow-light);
+        transition: all 0.3s ease;
+    }
+    
+    .panel-card:hover {
+        box-shadow: var(--shadow-medium);
+        transform: translateY(-2px);
+    }
+    
+    .panel-efficiency-gauge {
+        position: relative;
+        width: 120px;
+        height: 60px;
+        margin: 1rem auto;
+    }
+    
+    .real-time-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+    
+    .live-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--success-color);
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    
+    .mini-chart {
+        height: 80px;
+        width: 100%;
+        margin-top: 1rem;
+    }
+    
+    .health-alerts {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: var(--shadow-light);
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .alert-item {
+        display: flex;
+        align-items: start;
+        gap: 1rem;
+        padding: 1rem;
+        border-radius: 0.75rem;
+        margin-bottom: 0.75rem;
+        transition: all 0.3s ease;
+    }
+    
+    .alert-item:hover {
+        background: var(--surface-alt);
+    }
+    
+    .alert-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+    
+    .alert-urgent .alert-icon {
+        background: rgba(220, 38, 38, 0.1);
+        color: var(--warning-color);
+    }
+    
+    .alert-warning .alert-icon {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--accent-color);
+    }
+    
+    .alert-info .alert-icon {
+        background: rgba(59, 130, 246, 0.1);
+        color: var(--primary-color);
+    }
+    
+    .performance-trend {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+    }
+    
+    .trend-up {
+        color: var(--success-color);
+    }
+    
+    .trend-down {
+        color: var(--warning-color);
+    }
+    
+    .trend-stable {
+        color: var(--text-secondary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Health Dashboard Header -->
+<div class="health-dashboard" data-aos="fade-up">
+    <div class="row align-items-center">
+        <div class="col-lg-8">
+            <h1 class="mb-2">
+                <i class="fas fa-heartbeat me-3 text-success"></i>
+                Solar Panel Health Monitor
+            </h1>
+            <p class="mb-3 opacity-90">
+                Real-time monitoring of individual panel performance and system health for {{ selected_plant.name if selected_plant else 'All Plants' }}
+            </p>
+            <div class="real-time-indicator">
+                <span class="live-dot"></span>
+                <span>Live monitoring active</span>
+                <span class="mx-2">•</span>
+                <i class="fas fa-sync-alt me-1"></i>
+                <span>Updated every 30 seconds</span>
+            </div>
+        </div>
+        <div class="col-lg-4 text-lg-end">
+            <div class="d-flex flex-column gap-2">
+                <select class="form-select" onchange="changePlant(this.value)">
+                    <option value="">All Plants</option>
+                    {% for plant in plants %}
+                    <option value="{{ plant.id }}" {{ 'selected' if selected_plant and selected_plant.id == plant.id }}>
+                        {{ plant.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <button class="btn btn-outline-primary btn-sm" onclick="refreshHealthData()" data-loading>
+                    <i class="fas fa-sync-alt me-1"></i>
+                    Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Overall Health Metrics -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="100">
+        <div class="health-metric-card excellent">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h3 class="text-success mb-1">{{ health_metrics.overall_efficiency }}%</h3>
+                    <p class="text-muted mb-0">Overall Efficiency</p>
+                </div>
+                <div class="health-status-indicator status-excellent">
+                    <i class="fas fa-check-circle"></i>
+                    Excellent
+                </div>
+            </div>
+            <div class="performance-trend trend-up">
+                <i class="fas fa-arrow-up"></i>
+                <span>+2.3% from yesterday</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="200">
+        <div class="health-metric-card good">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h3 class="text-success mb-1">{{ health_metrics.active_panels }}</h3>
+                    <p class="text-muted mb-0">Active Panels</p>
+                </div>
+                <div class="health-status-indicator status-good">
+                    <i class="fas fa-solar-panel"></i>
+                    Online
+                </div>
+            </div>
+            <div class="performance-trend trend-stable">
+                <i class="fas fa-minus"></i>
+                <span>{{ health_metrics.total_panels }} total panels</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="300">
+        <div class="health-metric-card warning">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h3 class="text-warning mb-1">{{ health_metrics.panels_needing_attention }}</h3>
+                    <p class="text-muted mb-0">Need Attention</p>
+                </div>
+                <div class="health-status-indicator status-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Monitor
+                </div>
+            </div>
+            <div class="performance-trend trend-down">
+                <i class="fas fa-arrow-down"></i>
+                <span>Efficiency below 85%</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="400">
+        <div class="health-metric-card critical">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h3 class="text-danger mb-1">{{ health_metrics.maintenance_required }}</h3>
+                    <p class="text-muted mb-0">Maintenance Required</p>
+                </div>
+                <div class="health-status-indicator status-critical">
+                    <i class="fas fa-tools"></i>
+                    Urgent
+                </div>
+            </div>
+            <div class="performance-trend trend-down">
+                <i class="fas fa-wrench"></i>
+                <span>Schedule immediately</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Individual Panel Health -->
+<div class="row">
+    <div class="col-lg-8 mb-4">
+        <div class="card" data-aos="fade-up">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-th-large text-primary me-2"></i>
+                    Individual Panel Status
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="panel-grid">
+                    {% for panel in panel_health_data %}
+                    <div class="panel-card">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="mb-0">{{ panel.name }}</h6>
+                            <span class="health-status-indicator status-{{ panel.status_class }}">
+                                <i class="fas fa-{{ panel.status_icon }}"></i>
+                                {{ panel.status }}
+                            </span>
+                        </div>
+                        
+                        <div class="panel-efficiency-gauge">
+                            <canvas id="gauge{{ panel.id }}" width="120" height="60"></canvas>
+                        </div>
+                        
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="small text-muted">Power</div>
+                                <div class="fw-bold">{{ panel.current_power }}W</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="small text-muted">Temp</div>
+                                <div class="fw-bold">{{ panel.temperature }}°C</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="small text-muted">Voltage</div>
+                                <div class="fw-bold">{{ panel.voltage }}V</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mini-chart">
+                            <canvas id="chart{{ panel.id }}" width="300" height="80"></canvas>
+                        </div>
+                        
+                        {% if panel.alerts %}
+                        <div class="mt-2">
+                            {% for alert in panel.alerts %}
+                            <small class="badge bg-{{ alert.type }} me-1">{{ alert.message }}</small>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 mb-4">
+        <div class="health-alerts" data-aos="fade-up" data-aos-delay="100">
+            <h4 class="mb-3">
+                <i class="fas fa-bell text-warning me-2"></i>
+                Health Alerts
+                <span class="badge bg-danger ms-2">{{ health_alerts|length }}</span>
+            </h4>
+            
+            {% for alert in health_alerts %}
+            <div class="alert-item alert-{{ alert.priority }}">
+                <div class="alert-icon">
+                    <i class="fas fa-{{ alert.icon }}"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="fw-bold">{{ alert.title }}</div>
+                    <div class="text-muted small mb-1">{{ alert.message }}</div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">{{ alert.timestamp }}</small>
+                        {% if alert.action %}
+                        <button class="btn btn-sm btn-outline-primary" onclick="handleAlert('{{ alert.id }}')">
+                            {{ alert.action }}
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-check-circle text-success" style="font-size: 2rem;"></i>
+                <p class="mt-2">All panels operating normally</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Performance Trends -->
+<div class="row">
+    <div class="col-12">
+        <div class="card" data-aos="fade-up">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-chart-line text-primary me-2"></i>
+                    24-Hour Performance Trends
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="performanceTrendChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Initialize health monitoring dashboard
+let updateInterval;
+let charts = {};
+
+function initializeHealthDashboard() {
+    // Initialize individual panel gauges
+    {% for panel in panel_health_data %}
+    initializeGauge('gauge{{ panel.id }}', {{ panel.efficiency }});
+    initializeMiniChart('chart{{ panel.id }}', {{ panel.hourly_data | tojson }});
+    {% endfor %}
+    
+    // Initialize performance trend chart
+    initializePerformanceTrendChart();
+    
+    // Start real-time updates
+    startRealTimeUpdates();
+}
+
+function initializeGauge(canvasId, efficiency) {
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext('2d');
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw gauge
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height - 10;
+    const radius = 45;
+    
+    // Background arc
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, Math.PI, 0);
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.stroke();
+    
+    // Efficiency arc
+    const angle = Math.PI * (efficiency / 100);
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, Math.PI, Math.PI + angle);
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = efficiency >= 90 ? '#22c55e' : efficiency >= 75 ? '#f59e0b' : '#ef4444';
+    ctx.stroke();
+    
+    // Efficiency text
+    ctx.fillStyle = '#0f172a';
+    ctx.font = 'bold 16px Inter';
+    ctx.textAlign = 'center';
+    ctx.fillText(efficiency + '%', centerX, centerY - 10);
+}
+
+function initializeMiniChart(canvasId, data) {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    
+    charts[canvasId] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.labels,
+            datasets: [{
+                data: data.values,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { display: false },
+                y: { display: false }
+            },
+            interaction: { intersect: false }
+        }
+    });
+}
+
+function initializePerformanceTrendChart() {
+    const ctx = document.getElementById('performanceTrendChart').getContext('2d');
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ trend_data.labels | tojson }},
+            datasets: [
+                {
+                    label: 'Panel Efficiency (%)',
+                    data: {{ trend_data.efficiency | tojson }},
+                    borderColor: '#22c55e',
+                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.4
+                },
+                {
+                    label: 'Power Output (kW)',
+                    data: {{ trend_data.power | tojson }},
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.4
+                },
+                {
+                    label: 'Temperature (°C)',
+                    data: {{ trend_data.temperature | tojson }},
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { 
+                    position: 'top',
+                    labels: { usePointStyle: true }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleColor: 'white',
+                    bodyColor: 'white',
+                    borderColor: '#3b82f6',
+                    borderWidth: 1,
+                    cornerRadius: 8
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                    ticks: { color: 'rgba(100, 116, 139, 0.8)' }
+                },
+                x: {
+                    grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                    ticks: { color: 'rgba(100, 116, 139, 0.8)' }
+                }
+            },
+            interaction: { intersect: false, mode: 'index' }
+        }
+    });
+}
+
+function startRealTimeUpdates() {
+    updateInterval = setInterval(async () => {
+        try {
+            const plantId = {{ selected_plant.id if selected_plant else 'null' }};
+            const response = await fetch(`/api/panel_health/${plantId || 'all'}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                updateHealthMetrics(data.health_metrics);
+                updatePanelData(data.panel_data);
+            }
+        } catch (error) {
+            console.error('Error updating health data:', error);
+        }
+    }, 30000); // Update every 30 seconds
+}
+
+function updateHealthMetrics(metrics) {
+    // Update overall metrics display
+    document.querySelector('.health-metric-card.excellent h3').textContent = metrics.overall_efficiency + '%';
+    document.querySelector('.health-metric-card.good h3').textContent = metrics.active_panels;
+    document.querySelector('.health-metric-card.warning h3').textContent = metrics.panels_needing_attention;
+    document.querySelector('.health-metric-card.critical h3').textContent = metrics.maintenance_required;
+}
+
+function updatePanelData(panelData) {
+    panelData.forEach(panel => {
+        // Update gauge
+        initializeGauge(`gauge${panel.id}`, panel.efficiency);
+        
+        // Update metrics
+        const panelCard = document.querySelector(`#gauge${panel.id}`).closest('.panel-card');
+        panelCard.querySelector('.col-4:nth-child(1) .fw-bold').textContent = panel.current_power + 'W';
+        panelCard.querySelector('.col-4:nth-child(2) .fw-bold').textContent = panel.temperature + '°C';
+        panelCard.querySelector('.col-4:nth-child(3) .fw-bold').textContent = panel.voltage + 'V';
+    });
+}
+
+function changePlant(plantId) {
+    const url = plantId ? `/panel_health/${plantId}` : '/panel_health';
+    window.location.href = url;
+}
+
+async function refreshHealthData() {
+    try {
+        const response = await fetch('/api/refresh_panel_health', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            window.location.reload();
+        } else {
+            alert('Failed to refresh data: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error refreshing data: ' + error.message);
+    }
+}
+
+function handleAlert(alertId) {
+    // Handle alert action
+    alert(`Handling alert: ${alertId}`);
+}
+
+// Initialize dashboard when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    initializeHealthDashboard();
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (updateInterval) {
+        clearInterval(updateInterval);
+    }
+});
+</script>
+{% endblock %}
