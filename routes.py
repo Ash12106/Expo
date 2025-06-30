@@ -797,7 +797,41 @@ def get_seasonal_patterns(plant_id):
 @app.route('/weather_impact')
 @app.route('/weather_impact/<int:plant_id>')
 def weather_impact_dashboard(plant_id=None):
-    """Weather impact analysis dashboard"""
+    """Modern timeline weather impact dashboard"""
+    try:
+        # Get plants
+        plants = SolarPlant.query.all()
+        selected_plant = None
+        
+        if plant_id:
+            selected_plant = SolarPlant.query.get_or_404(plant_id)
+        elif plants:
+            selected_plant = plants[0]
+            plant_id = selected_plant.id
+        else:
+            return redirect(url_for('index'))
+        
+        # Get current weather impact
+        current_impact = weather_impact_predictor.get_current_weather_impact(plant_id)
+        
+        # Get 24-hour forecast
+        forecast_impact = weather_impact_predictor.get_hourly_forecast_impact(plant_id, 24)
+        
+        return render_template('modern_timeline_forecast.html',
+                             plants=plants,
+                             selected_plant=selected_plant,
+                             current_impact=current_impact,
+                             forecast_impact=forecast_impact)
+    
+    except Exception as e:
+        logging.error(f"Error in weather impact dashboard route: {e}")
+        flash(f'Error loading weather impact dashboard: {str(e)}', 'error')
+        return redirect(url_for('index'))
+
+@app.route('/weather-impact-legacy')
+@app.route('/weather-impact-legacy/<int:plant_id>')
+def weather_impact_dashboard_legacy(plant_id=None):
+    """Legacy weather impact analysis dashboard"""
     try:
         # Get plants
         plants = SolarPlant.query.all()
