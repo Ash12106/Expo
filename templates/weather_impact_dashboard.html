@@ -471,7 +471,7 @@
                         <div class="text-end">
                             <div class="badge bg-light text-dark px-3 py-2">
                                 <i class="fas fa-sync-alt me-1"></i>
-                                Updated: {{ moment().format('HH:mm') if moment else 'Live' }}
+                                Updated: <span id="current-time">Live</span>
                             </div>
                         </div>
                     </div>
@@ -495,7 +495,7 @@
                             <tbody>
                                 {% for hour in range(24) %}
                                 {% set hour_time = '%02d:00'|format(hour) %}
-                                {% set is_current = hour == 12 %}
+                                {% set is_current = false %}
                                 {% set is_peak = hour >= 10 and hour <= 14 %}
                                 
                                 {% if hour >= 6 and hour <= 18 %}
@@ -528,12 +528,10 @@
                                     {% set status_icon = 'cloud-rain' %}
                                 {% endif %}
                                 
-                                <tr class="{% if is_current %}table-info border-start border-primary border-3{% elif is_peak %}table-light{% endif %}">
+                                <tr class="forecast-row {% if is_peak %}table-light{% endif %}" data-hour="{{ hour }}">
                                     <td class="px-4 py-3">
                                         <div class="d-flex align-items-center">
-                                            {% if is_current %}
-                                            <div class="badge bg-danger me-2 pulse">NOW</div>
-                                            {% endif %}
+                                            <div class="badge bg-danger me-2 pulse current-hour-badge" style="display: none;">NOW</div>
                                             <span class="fw-semibold fs-6">{{ hour_time }}</span>
                                         </div>
                                     </td>
@@ -807,8 +805,48 @@
         window.location.href = `/weather_impact/${plantId}`;
     }
     
+    // Update current time indicator
+    function updateCurrentTime() {
+        const now = new Date();
+        const currentHour = now.getHours();
+        const timeString = now.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: false 
+        });
+        
+        // Update timestamp
+        const timeElement = document.getElementById('current-time');
+        if (timeElement) {
+            timeElement.textContent = timeString;
+        }
+        
+        // Remove previous current hour highlighting
+        document.querySelectorAll('.forecast-row').forEach(row => {
+            row.classList.remove('table-info', 'border-start', 'border-primary', 'border-3');
+            const badge = row.querySelector('.current-hour-badge');
+            if (badge) {
+                badge.style.display = 'none';
+            }
+        });
+        
+        // Highlight current hour
+        const currentRow = document.querySelector(`[data-hour="${currentHour}"]`);
+        if (currentRow) {
+            currentRow.classList.add('table-info', 'border-start', 'border-primary', 'border-3');
+            const badge = currentRow.querySelector('.current-hour-badge');
+            if (badge) {
+                badge.style.display = 'inline-block';
+            }
+        }
+    }
+
     // Initialize auto-refresh when page loads
     document.addEventListener('DOMContentLoaded', function() {
+        // Update time immediately and then every minute
+        updateCurrentTime();
+        setInterval(updateCurrentTime, 60000);
+        
         startAutoRefresh();
         
         // Stop auto-refresh when page is hidden
