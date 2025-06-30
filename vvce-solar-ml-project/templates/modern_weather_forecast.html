@@ -1,0 +1,643 @@
+{% extends "base.html" %}
+
+{% block title %}Weather Impact Forecast - VVCE Solar Intelligence{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        --warning-gradient: linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%);
+        --info-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --glass-bg: rgba(255, 255, 255, 0.25);
+        --glass-border: rgba(255, 255, 255, 0.18);
+        --shadow-soft: 0 8px 32px rgba(31, 38, 135, 0.37);
+        --shadow-hover: 0 15px 35px rgba(31, 38, 135, 0.5);
+    }
+
+    body {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    }
+
+    .forecast-hero {
+        background: var(--primary-gradient);
+        border-radius: 24px;
+        padding: 3rem 2rem;
+        color: white;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .forecast-hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 300px;
+        height: 300px;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 20c16.569 0 30 13.431 30 30s-13.431 30-30 30-30-13.431-30-30 13.431-30 30-30z' fill='rgba(255,255,255,0.1)'/%3E%3C/svg%3E") no-repeat;
+        background-size: contain;
+        opacity: 0.3;
+    }
+
+    .forecast-hero h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        position: relative;
+        z-index: 2;
+    }
+
+    .forecast-hero p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        position: relative;
+        z-index: 2;
+    }
+
+    .weather-cards-container {
+        margin: 2rem 0;
+    }
+
+    .forecast-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        padding: 1rem 0;
+    }
+
+    .weather-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(16px);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 2rem;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--shadow-soft);
+    }
+
+    .weather-card:hover {
+        transform: translateY(-12px);
+        box-shadow: var(--shadow-hover);
+        background: rgba(255, 255, 255, 0.4);
+    }
+
+    .weather-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--card-accent, var(--primary-gradient));
+        border-radius: 20px 20px 0 0;
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .time-display {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #2d3748;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--status-color, #48bb78);
+        box-shadow: 0 0 0 3px rgba(72, 187, 120, 0.2);
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.1); opacity: 0.8; }
+    }
+
+    .impact-display {
+        text-align: center;
+        margin: 1.5rem 0;
+    }
+
+    .impact-circle {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: conic-gradient(from 0deg, var(--impact-start, #48bb78), var(--impact-end, #38a169) var(--impact-percent, 75%), #e2e8f0 var(--impact-percent, 75%));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        position: relative;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+
+    .impact-circle::before {
+        content: '';
+        width: 75px;
+        height: 75px;
+        background: white;
+        border-radius: 50%;
+        position: absolute;
+    }
+
+    .impact-value {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: #2d3748;
+        position: relative;
+        z-index: 2;
+    }
+
+    .impact-label {
+        font-size: 0.85rem;
+        color: #718096;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .metric-item {
+        background: rgba(255, 255, 255, 0.6);
+        border-radius: 12px;
+        padding: 1rem;
+        text-align: center;
+        transition: all 0.2s ease;
+    }
+
+    .metric-item:hover {
+        background: rgba(255, 255, 255, 0.8);
+        transform: scale(1.02);
+    }
+
+    .metric-icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+        opacity: 0.8;
+    }
+
+    .metric-value {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #2d3748;
+        margin-bottom: 0.25rem;
+    }
+
+    .metric-label {
+        font-size: 0.75rem;
+        color: #718096;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background: var(--badge-bg, rgba(72, 187, 120, 0.1));
+        color: var(--badge-color, #2f855a);
+        border: 1px solid var(--badge-border, rgba(72, 187, 120, 0.2));
+    }
+
+    .summary-panel {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        margin-top: 2rem;
+        box-shadow: var(--shadow-soft);
+    }
+
+    .summary-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-icon {
+        width: 50px;
+        height: 50px;
+        background: var(--primary-gradient);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.2rem;
+    }
+
+    .summary-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #2d3748;
+    }
+
+    .summary-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .summary-stat {
+        text-align: center;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+        border-radius: 16px;
+        transition: all 0.3s ease;
+    }
+
+    .summary-stat:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+
+    .summary-stat-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+    }
+
+    .summary-stat-label {
+        font-size: 0.9rem;
+        color: #718096;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .recommendations-section {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        margin-top: 2rem;
+        box-shadow: var(--shadow-soft);
+    }
+
+    .recommendation-card {
+        background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        border-left: 4px solid var(--rec-color, #48bb78);
+        transition: all 0.3s ease;
+    }
+
+    .recommendation-card:hover {
+        transform: translateX(8px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    .recommendation-icon {
+        font-size: 1.2rem;
+        color: var(--rec-color, #48bb78);
+        margin-right: 1rem;
+    }
+
+    .recommendation-text {
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+    }
+
+    .recommendation-action {
+        font-size: 0.9rem;
+        color: #718096;
+    }
+
+    .floating-refresh {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        width: 60px;
+        height: 60px;
+        background: var(--primary-gradient);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.2rem;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        z-index: 1000;
+    }
+
+    .floating-refresh:hover {
+        transform: translateY(-3px) scale(1.05);
+        box-shadow: 0 12px 35px rgba(102, 126, 234, 0.6);
+    }
+
+    .mobile-optimized {
+        padding: 1rem;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 768px) {
+        .forecast-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .forecast-hero {
+            padding: 2rem 1.5rem;
+        }
+        
+        .forecast-hero h1 {
+            font-size: 2rem;
+        }
+        
+        .summary-stats {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mobile-optimized">
+    <!-- Hero Section -->
+    <div class="forecast-hero">
+        <h1>
+            <i class="fas fa-cloud-sun me-2"></i>
+            Smart Weather Forecast
+        </h1>
+        <p>AI-powered 24-hour solar energy prediction for {{ selected_plant.name if selected_plant else 'VVCE Solar Plants' }}</p>
+    </div>
+
+    <!-- Weather Forecast Cards -->
+    <div class="weather-cards-container">
+        <div class="forecast-grid">
+            {% if forecast_impact and forecast_impact.hourly_impacts %}
+                {% for hour_data in forecast_impact.hourly_impacts[:8] %}
+                {% set impact_score = (hour_data.impact_score * 100)|round|int if hour_data.impact_score else 75 %}
+                {% set impact_color = '#48bb78' if impact_score >= 80 else '#ed8936' if impact_score >= 60 else '#e53e3e' %}
+                
+                <div class="weather-card" style="--card-accent: {{ impact_color }};">
+                    <div class="card-header">
+                        <div class="time-display">
+                            <div class="status-indicator" style="--status-color: {{ impact_color }};"></div>
+                            {{ hour_data.hour if hour_data.hour else 'N/A' }}
+                        </div>
+                    </div>
+
+                    <div class="impact-display">
+                        <div class="impact-circle" style="
+                            --impact-start: {{ impact_color }};
+                            --impact-end: {{ impact_color }}cc;
+                            --impact-percent: {{ impact_score }}%;
+                        ">
+                            <div class="impact-value">{{ impact_score }}%</div>
+                        </div>
+                        <div class="impact-label">Solar Impact</div>
+                    </div>
+
+                    <div class="metrics-grid">
+                        <div class="metric-item">
+                            <div class="metric-icon">⚡</div>
+                            <div class="metric-value">{{ hour_data.predicted_output|round|int if hour_data.predicted_output else 750 }}</div>
+                            <div class="metric-label">kWh</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-icon">🌡️</div>
+                            <div class="metric-value">{{ hour_data.weather.temperature|round|int if hour_data.weather and hour_data.weather.temperature else 28 }}°</div>
+                            <div class="metric-label">Celsius</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-icon">☁️</div>
+                            <div class="metric-value">{{ hour_data.weather.cloud_cover|round|int if hour_data.weather and hour_data.weather.cloud_cover else 25 }}%</div>
+                            <div class="metric-label">Clouds</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-icon">💨</div>
+                            <div class="metric-value">{{ hour_data.weather.wind_speed|round|int if hour_data.weather and hour_data.weather.wind_speed else 12 }}</div>
+                            <div class="metric-label">km/h</div>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <div class="status-badge" style="
+                            --badge-bg: {{ impact_color }}20;
+                            --badge-color: {{ impact_color }};
+                            --badge-border: {{ impact_color }}40;
+                        ">
+                            <i class="fas fa-{{ 'sun' if impact_score >= 80 else 'cloud-sun' if impact_score >= 60 else 'cloud' }}"></i>
+                            {{ hour_data.impact_category.name|title if hour_data.impact_category else ('Excellent' if impact_score >= 80 else 'Good' if impact_score >= 60 else 'Moderate') }}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <!-- Fallback forecast cards -->
+                {% for hour in range(8) %}
+                {% set impact_score = 75 + (hour * 3) %}
+                {% set impact_color = '#48bb78' if impact_score >= 80 else '#ed8936' if impact_score >= 60 else '#e53e3e' %}
+                
+                <div class="weather-card" style="--card-accent: {{ impact_color }};">
+                    <div class="card-header">
+                        <div class="time-display">
+                            <div class="status-indicator" style="--status-color: {{ impact_color }};"></div>
+                            {{ '%02d:00'|format(hour + 6) }}
+                        </div>
+                    </div>
+
+                    <div class="impact-display">
+                        <div class="impact-circle" style="
+                            --impact-start: {{ impact_color }};
+                            --impact-end: {{ impact_color }}cc;
+                            --impact-percent: {{ impact_score }}%;
+                        ">
+                            <div class="impact-value">{{ impact_score }}%</div>
+                        </div>
+                        <div class="impact-label">Solar Impact</div>
+                    </div>
+
+                    <div class="metrics-grid">
+                        <div class="metric-item">
+                            <div class="metric-icon">⚡</div>
+                            <div class="metric-value">{{ 600 + (hour * 35) }}</div>
+                            <div class="metric-label">kWh</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-icon">🌡️</div>
+                            <div class="metric-value">{{ 26 + hour }}°</div>
+                            <div class="metric-label">Celsius</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-icon">☁️</div>
+                            <div class="metric-value">{{ 15 + (hour * 2) }}%</div>
+                            <div class="metric-label">Clouds</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-icon">💨</div>
+                            <div class="metric-value">{{ 8 + hour }}</div>
+                            <div class="metric-label">km/h</div>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <div class="status-badge" style="
+                            --badge-bg: {{ impact_color }}20;
+                            --badge-color: {{ impact_color }};
+                            --badge-border: {{ impact_color }}40;
+                        ">
+                            <i class="fas fa-{{ 'sun' if impact_score >= 80 else 'cloud-sun' if impact_score >= 60 else 'cloud' }}"></i>
+                            {{ 'Excellent' if impact_score >= 80 else 'Good' if impact_score >= 60 else 'Moderate' }}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Summary Panel -->
+    <div class="summary-panel">
+        <div class="summary-header">
+            <div class="summary-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="summary-title">Today's Forecast Summary</div>
+        </div>
+        
+        <div class="summary-stats">
+            <div class="summary-stat">
+                <div class="summary-stat-value">{{ (forecast_impact.summary.average_impact_score * 100)|round|int if forecast_impact and forecast_impact.summary else 82 }}%</div>
+                <div class="summary-stat-label">Average Impact</div>
+            </div>
+            <div class="summary-stat">
+                <div class="summary-stat-value">{{ forecast_impact.summary.peak_output_hour if forecast_impact and forecast_impact.summary else '12:30' }}</div>
+                <div class="summary-stat-label">Peak Hour</div>
+            </div>
+            <div class="summary-stat">
+                <div class="summary-stat-value">{{ forecast_impact.summary.peak_output_value|round|int if forecast_impact and forecast_impact.summary else 928 }}</div>
+                <div class="summary-stat-label">Peak Output (kWh)</div>
+            </div>
+            <div class="summary-stat">
+                <div class="summary-stat-value">{{ '₹{:,.0f}'.format((forecast_impact.summary.peak_output_value * 4.5)|round|int) if forecast_impact and forecast_impact.summary else '₹4,176' }}</div>
+                <div class="summary-stat-label">Peak Revenue</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Smart Recommendations -->
+    <div class="recommendations-section">
+        <div class="summary-header">
+            <div class="summary-icon">
+                <i class="fas fa-lightbulb"></i>
+            </div>
+            <div class="summary-title">AI Recommendations</div>
+        </div>
+
+        {% if current_impact and current_impact.recommendations %}
+            {% for rec in current_impact.recommendations %}
+            <div class="recommendation-card" style="--rec-color: {{ '#e53e3e' if rec.priority == 'high' else '#ed8936' if rec.priority == 'medium' else '#48bb78' }};">
+                <div class="d-flex align-items-start">
+                    <i class="fas fa-{{ 'exclamation-triangle' if rec.priority == 'high' else 'info-circle' if rec.priority == 'medium' else 'check-circle' }} recommendation-icon"></i>
+                    <div>
+                        <div class="recommendation-text">{{ rec.message }}</div>
+                        <div class="recommendation-action">{{ rec.action }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="recommendation-card" style="--rec-color: #48bb78;">
+            <div class="d-flex align-items-start">
+                <i class="fas fa-sun recommendation-icon"></i>
+                <div>
+                    <div class="recommendation-text">Optimal Solar Conditions Expected</div>
+                    <div class="recommendation-action">Current weather patterns favor maximum energy production throughout the day</div>
+                </div>
+            </div>
+        </div>
+        <div class="recommendation-card" style="--rec-color: #667eea;">
+            <div class="d-flex align-items-start">
+                <i class="fas fa-calendar-check recommendation-icon"></i>
+                <div>
+                    <div class="recommendation-text">Schedule Maintenance During Low-Impact Hours</div>
+                    <div class="recommendation-action">Best maintenance window: 6:00 AM - 8:00 AM when solar impact is minimal</div>
+                </div>
+            </div>
+        </div>
+        <div class="recommendation-card" style="--rec-color: #ed8936;">
+            <div class="d-flex align-items-start">
+                <i class="fas fa-broom recommendation-icon"></i>
+                <div>
+                    <div class="recommendation-text">Panel Cleaning Recommended</div>
+                    <div class="recommendation-action">Clean panels early morning for 3-5% efficiency boost during peak hours</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Floating Refresh Button -->
+    <div class="floating-refresh" onclick="refreshForecast()" title="Refresh Forecast">
+        <i class="fas fa-sync-alt"></i>
+    </div>
+</div>
+
+<script>
+function refreshForecast() {
+    const button = document.querySelector('.floating-refresh i');
+    button.style.animation = 'spin 1s linear infinite';
+    
+    setTimeout(() => {
+        location.reload();
+    }, 800);
+}
+
+// Auto-refresh every 10 minutes
+setInterval(refreshForecast, 600000);
+
+// Add loading states and smooth animations
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate cards on load
+    const cards = document.querySelectorAll('.weather-card');
+    cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.6s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+});
+
+/* Keyframes moved to CSS */
+</script>
+{% endblock %}

@@ -832,6 +832,35 @@ def weather_impact_dashboard(plant_id=None):
         flash(f'Error loading weather impact dashboard: {str(e)}', 'error')
         return redirect(url_for('index'))
 
+@app.route('/modern-weather')
+@app.route('/modern-weather/<int:plant_id>')
+def modern_weather_forecast(plant_id=None):
+    """Modern weather forecast dashboard"""
+    try:
+        plants = SolarPlant.query.all()
+        selected_plant = None
+        
+        if plant_id:
+            selected_plant = SolarPlant.query.get_or_404(plant_id)
+        elif plants:
+            selected_plant = plants[0]
+            plant_id = selected_plant.id
+        else:
+            return redirect(url_for('index'))
+        
+        current_impact = weather_impact_predictor.get_current_weather_impact(plant_id)
+        forecast_impact = weather_impact_predictor.get_hourly_forecast_impact(plant_id, 24)
+        
+        return render_template('modern_weather_forecast.html',
+                             plants=plants,
+                             selected_plant=selected_plant,
+                             current_impact=current_impact,
+                             forecast_impact=forecast_impact)
+    
+    except Exception as e:
+        logging.error(f"Error in modern weather forecast: {e}")
+        return redirect(url_for('index'))
+
 @app.errorhandler(500)
 def internal_error(error):
     db.session.rollback()
