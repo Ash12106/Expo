@@ -57,6 +57,15 @@ This is a comprehensive machine learning-powered web application for monitoring,
 - **Forecasting**: 7-day weather predictions
 - **Error Handling**: Graceful degradation to synthetic data
 
+### Weather Impact Prediction (`weather_impact_predictor.py`)
+- **WeatherImpactPredictor**: Advanced weather correlation analysis engine
+- **Real-time Impact Analysis**: Current weather conditions vs. solar output predictions
+- **24-Hour Forecasting**: Hourly weather impact predictions with confidence intervals
+- **Correlation Analytics**: Historical weather-performance relationship analysis
+- **Factor Scoring**: Multi-factor weather impact scoring (irradiance, temperature, humidity, cloud cover, wind)
+- **Recommendation Engine**: Actionable insights based on weather conditions
+- **Seasonal Patterns**: Year-over-year weather pattern analysis for optimization
+
 ## Data Flow
 
 1. **Data Collection**: Weather API fetches current conditions and forecasts
@@ -117,6 +126,9 @@ This is a comprehensive machine learning-powered web application for monitoring,
 - June 30, 2025: Redesigned complete UI/UX with professional modern interface
 - June 30, 2025: Fixed dashboard routing issues and template rendering errors
 - June 30, 2025: Implemented professional navigation, cards, and responsive design
+- June 30, 2025: Implemented comprehensive contextual weather impact prediction system
+- June 30, 2025: Added real-time weather analysis with correlation insights and forecasting
+- June 30, 2025: Created weather impact dashboard with auto-refresh and interactive visualizations
 
 ## User Preferences
 

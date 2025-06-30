@@ -287,6 +287,68 @@
     </div>
 </div>
 
+<!-- Advanced Features Section -->
+<div class="row mb-5">
+    <div class="col-12 text-center mb-4" data-aos="fade-up">
+        <h2 class="mb-3">Advanced Analytics & Monitoring</h2>
+        <p class="text-muted lead">Comprehensive tools for solar plant optimization and performance analysis</p>
+    </div>
+    
+    <div class="col-lg-4 mb-4" data-aos="fade-up" data-aos-delay="100">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <div class="feature-icon mb-3" style="font-size: 3rem; color: #0ea5e9;">
+                    <i class="fas fa-cloud-sun"></i>
+                </div>
+                <h4 class="mb-3">Weather Impact Analysis</h4>
+                <p class="text-muted mb-4">
+                    Contextual weather prediction system analyzing how current and forecasted weather conditions impact solar energy production with real-time correlations.
+                </p>
+                <a href="{{ url_for('weather_impact_dashboard') }}" class="btn btn-outline-info">
+                    <i class="fas fa-arrow-right me-1"></i>
+                    Weather Analysis
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 mb-4" data-aos="fade-up" data-aos-delay="200">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <div class="feature-icon mb-3" style="font-size: 3rem; color: #8b5cf6;">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <h4 class="mb-3">Performance Analytics</h4>
+                <p class="text-muted mb-4">
+                    Deep insights into plant performance with correlation analysis, seasonal patterns, and optimization recommendations for maximum efficiency.
+                </p>
+                <a href="{{ url_for('analytics_dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-right me-1"></i>
+                    View Reports
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 mb-4" data-aos="fade-up" data-aos-delay="300">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <div class="feature-icon mb-3" style="font-size: 3rem; color: #10b981;">
+                    <i class="fas fa-cogs"></i>
+                </div>
+                <h4 class="mb-3">System Integration</h4>
+                <p class="text-muted mb-4">
+                    Seamless integration with VVCE infrastructure, providing comprehensive monitoring and control capabilities for optimal operations.
+                </p>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-success">
+                    <i class="fas fa-arrow-right me-1"></i>
+                    Integration Hub
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Recent Alerts -->
 {% if maintenance_alerts %}
 <div class="row mb-5">

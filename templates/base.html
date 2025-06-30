@@ -388,6 +388,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'weather_impact_dashboard' }}" href="{{ url_for('weather_impact_dashboard') }}">
+                            <i class="fas fa-cloud-sun"></i>
+                            Weather Impact
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {{ 'active' if request.endpoint == 'data_editor' }}" href="{{ url_for('data_editor') }}">
                             <i class="fas fa-database"></i>
                             Data Manager

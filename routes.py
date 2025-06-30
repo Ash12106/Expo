@@ -6,6 +6,7 @@ from realistic_solar_model import realistic_predictor
 from weather_api import weather_api
 from weekly_analytics import VVCEWeeklyAnalytics
 from panel_health_monitor import health_monitor
+from weather_impact_predictor import weather_impact_predictor
 from datetime import datetime, timedelta, date
 import logging
 import json
@@ -725,6 +726,111 @@ def refresh_dashboard_data():
             'success': False,
             'error': f'Error: {str(e)}'
         })
+
+# Weather Impact Prediction API Endpoints
+@app.route('/api/weather_impact/<int:plant_id>')
+def get_current_weather_impact(plant_id):
+    """API endpoint to get current weather impact analysis"""
+    try:
+        impact_data = weather_impact_predictor.get_current_weather_impact(plant_id)
+        return jsonify({
+            'success': True,
+            'data': impact_data
+        })
+    except Exception as e:
+        logging.error(f"Error getting weather impact: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Error: {str(e)}'
+        })
+
+@app.route('/api/weather_forecast_impact/<int:plant_id>')
+@app.route('/api/weather_forecast_impact/<int:plant_id>/<int:hours>')
+def get_forecast_impact(plant_id, hours=24):
+    """API endpoint to get hourly weather forecast impact"""
+    try:
+        forecast_data = weather_impact_predictor.get_hourly_forecast_impact(plant_id, hours)
+        return jsonify({
+            'success': True,
+            'data': forecast_data
+        })
+    except Exception as e:
+        logging.error(f"Error getting forecast impact: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Error: {str(e)}'
+        })
+
+@app.route('/api/weather_correlation/<int:plant_id>')
+@app.route('/api/weather_correlation/<int:plant_id>/<int:days>')
+def get_weather_correlation(plant_id, days=30):
+    """API endpoint to get weather correlation analysis"""
+    try:
+        correlation_data = weather_impact_predictor.get_weather_correlation_analysis(plant_id, days)
+        return jsonify({
+            'success': True,
+            'data': correlation_data
+        })
+    except Exception as e:
+        logging.error(f"Error getting correlation analysis: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Error: {str(e)}'
+        })
+
+@app.route('/api/seasonal_patterns/<int:plant_id>')
+def get_seasonal_patterns(plant_id):
+    """API endpoint to get seasonal weather patterns"""
+    try:
+        seasonal_data = weather_impact_predictor.get_seasonal_weather_patterns(plant_id)
+        return jsonify({
+            'success': True,
+            'data': seasonal_data
+        })
+    except Exception as e:
+        logging.error(f"Error getting seasonal patterns: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Error: {str(e)}'
+        })
+
+@app.route('/weather_impact')
+@app.route('/weather_impact/<int:plant_id>')
+def weather_impact_dashboard(plant_id=None):
+    """Weather impact analysis dashboard"""
+    try:
+        # Get plants
+        plants = SolarPlant.query.all()
+        selected_plant = None
+        
+        if plant_id:
+            selected_plant = SolarPlant.query.get_or_404(plant_id)
+        elif plants:
+            selected_plant = plants[0]
+            plant_id = selected_plant.id
+        else:
+            return redirect(url_for('index'))
+        
+        # Get current weather impact
+        current_impact = weather_impact_predictor.get_current_weather_impact(plant_id)
+        
+        # Get 24-hour forecast
+        forecast_impact = weather_impact_predictor.get_hourly_forecast_impact(plant_id, 24)
+        
+        # Get correlation analysis
+        correlation_analysis = weather_impact_predictor.get_weather_correlation_analysis(plant_id, 30)
+        
+        return render_template('weather_impact_dashboard.html',
+                             plants=plants,
+                             selected_plant=selected_plant,
+                             current_impact=current_impact,
+                             forecast_impact=forecast_impact,
+                             correlation_analysis=correlation_analysis)
+    
+    except Exception as e:
+        logging.error(f"Error in weather impact dashboard route: {e}")
+        flash(f'Error loading weather impact dashboard: {str(e)}', 'error')
+        return redirect(url_for('index'))
 
 @app.errorhandler(500)
 def internal_error(error):
