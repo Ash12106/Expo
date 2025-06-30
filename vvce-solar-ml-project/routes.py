@@ -191,7 +191,7 @@ def dashboard(plant_id=None):
         return render_template('dashboard.html',
                              plants=plants,
                              selected_plant=selected_plant,
-                             current_time=datetime.now(),
+                             current_time=current_time_str,
                              metrics=metrics,
                              weather=weather,
                              weekly_data=weekly_data,
