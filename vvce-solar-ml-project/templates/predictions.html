@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}Predictions - {{ plant.name }} | VVCE Solar ML Predictor{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/clean-layout.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="app-container">
+    <!-- Sidebar -->
+    <aside class="app-sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-title">
+                <i class="fas fa-solar-panel"></i>
+                Solar Plants
+            </div>
+            <div class="sidebar-subtitle">VVCE Campus</div>
+        </div>
+        
+        <div class="plant-list">
+            {% for p in all_plants %}
+            <a href="{{ url_for('predictions', plant_id=p.id) }}" 
+               class="plant-item {% if p.id == plant.id %}active{% endif %}">
+                <div class="plant-name">{{ p.name }}</div>
+                <div class="plant-details">
+                    <div class="plant-location">
+                        <i class="fas fa-map-marker-alt"></i>
+                        {{ p.location }}
+                    </div>
+                    <div class="plant-capacity">
+                        <i class="fas fa-bolt"></i>
+                        {{ p.capacity_mw }} MW
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        
+        <div class="sidebar-footer">
+            <i class="fas fa-building"></i>
+            {{ all_plants|length }} Total Plants
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-crystal-ball" style="color: #10b981;"></i>
+                6-Month Predictions - {{ plant.name }}
+            </h1>
+            <p class="page-subtitle">
+                <i class="fas fa-brain"></i> AI-powered forecasts using advanced physics-based models •
+                <i class="fas fa-calendar"></i> 26-week detailed analysis •
+                <i class="fas fa-chart-line"></i> {{ predictions|length if predictions else 0 }} predictions generated
+            </p>
+        </div>
+
+        {% if predictions %}
+        <!-- Summary Statistics -->
+        <div class="stats-container">
+            {% set total_energy = predictions | map(attribute='predicted_energy') | sum %}
+            {% set total_revenue = predictions | map(attribute='predicted_revenue') | sum %}
+            {% set avg_efficiency = (predictions | map(attribute='predicted_efficiency') | sum / predictions|length) %}
+            {% set avg_confidence = (predictions | map(attribute='confidence_score') | sum / predictions|length) %}
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                </div>
+                <div class="stat-value">{{ '{:,.0f}'.format(total_energy) }}</div>
+                <div class="stat-label">Total Energy (kWh)</div>
+            </div>
+
+            <div class="stat-card success">
+                <div class="stat-header">
+                    <div class="stat-icon success">
+                        <i class="fas fa-rupee-sign"></i>
+                    </div>
+                </div>
+                <div class="stat-value">₹{{ '{:,.0f}'.format(total_revenue) }}</div>
+                <div class="stat-label">Total Revenue</div>
+            </div>
+
+            <div class="stat-card warning">
+                <div class="stat-header">
+                    <div class="stat-icon warning">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                </div>
+                <div class="stat-value">{{ '{:.1f}'.format(avg_efficiency) }}%</div>
+                <div class="stat-label">Avg Efficiency</div>
+            </div>
+
+            <div class="stat-card" style="border-top-color: #06b6d4;">
+                <div class="stat-header">
+                    <div class="stat-icon" style="background: #06b6d4;">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                </div>
+                <div class="stat-value">{{ '{:.0f}'.format(avg_confidence * 100) }}%</div>
+                <div class="stat-label">Confidence Score</div>
+            </div>
+        </div>
+
+        <!-- Prediction Charts -->
+        <div class="chart-box">
+            <div class="chart-header">
+                <h2 class="chart-title">
+                    <i class="fas fa-bolt"></i>
+                    Energy Production Forecast
+                </h2>
+                <div class="flex gap-2">
+                    <button class="btn btn-secondary btn-sm" onclick="downloadPredictions('energy')">
+                        <i class="fas fa-download"></i>
+                        Export Data
+                    </button>
+                    <a href="{{ url_for('dashboard', plant_id=plant.id) }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Back to Dashboard
+                    </a>
+                </div>
+            </div>
+            <div class="chart-content">
+                <canvas id="energyPredictionChart"></canvas>
+            </div>
+        </div>
+
+        <div class="content-grid" style="grid-template-columns: 1fr 1fr; gap: 2rem;">
+            <!-- Revenue Prediction Chart -->
+            <div class="chart-box">
+                <div class="chart-header">
+                    <h2 class="chart-title">
+                        <i class="fas fa-rupee-sign"></i>
+                        Revenue Forecast
+                    </h2>
+                </div>
+                <div class="chart-content">
+                    <canvas id="revenuePredictionChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Monthly Summary -->
+            <div class="chart-box">
+                <div class="chart-header">
+                    <h2 class="chart-title">
+                        <i class="fas fa-calendar-alt"></i>
+                        Monthly Summary
+                    </h2>
+                </div>
+                <div class="chart-content">
+                    <canvas id="monthlyForecastChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Predictions Table -->
+        <div class="table-container">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-table"></i>
+                    Detailed Weekly Predictions
+                </h2>
+                <button class="btn btn-secondary btn-sm" onclick="toggleTableView()">
+                    <i class="fas fa-eye"></i>
+                    Toggle View
+                </button>
+            </div>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Week</th>
+                        <th>Date</th>
+                        <th>Energy (kWh)</th>
+                        <th>Revenue (₹)</th>
+                        <th>Efficiency (%)</th>
+                        <th>Confidence</th>
+                        <th>Model</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for prediction in predictions[:26] %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ prediction.prediction_date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ '{:.1f}'.format(prediction.predicted_energy) }}</td>
+                        <td>₹{{ '{:,.0f}'.format(prediction.predicted_revenue) }}</td>
+                        <td>
+                            <span class="badge 
+                                {% if prediction.predicted_efficiency >= 18 %}bg-success
+                                {% elif prediction.predicted_efficiency >= 15 %}bg-primary
+                                {% elif prediction.predicted_efficiency >= 12 %}bg-warning
+                                {% else %}bg-danger
+                                {% endif %}" style="padding: 0.25rem 0.5rem; border-radius: 0.25rem; color: white; font-size: 0.75rem;">
+                                {{ '{:.1f}'.format(prediction.predicted_efficiency) }}%
+                            </span>
+                        </td>
+                        <td>
+                            <div style="background: #e5e7eb; border-radius: 0.5rem; height: 1rem; overflow: hidden;">
+                                <div style="height: 100%; background: 
+                                    {% if prediction.confidence_score >= 0.8 %}#10b981
+                                    {% elif prediction.confidence_score >= 0.6 %}#3b82f6
+                                    {% else %}#f59e0b
+                                    {% endif %}; width: {{ prediction.confidence_score * 100 }}%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem; font-weight: 600;">
+                                    {{ '{:.0f}'.format(prediction.confidence_score * 100) }}%
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <small style="color: #6b7280;">{{ prediction.model_used }}</small>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% else %}
+        <!-- No Predictions Available -->
+        <div class="content-section">
+            <div class="section-content text-center" style="padding: 4rem;">
+                <div class="mb-4">
+                    <i class="fas fa-chart-line" style="font-size: 4rem; color: #d1d5db;"></i>
+                </div>
+                <h3 style="color: #6b7280; margin-bottom: 1rem;">No Predictions Available</h3>
+                <p style="color: #9ca3af; margin-bottom: 2rem;">Generate AI-powered 6-month forecasts for {{ plant.name }}</p>
+                <div class="flex justify-center gap-3">
+                    <a href="{{ url_for('dashboard', plant_id=plant.id) }}" class="btn btn-primary">
+                        <i class="fas fa-arrow-left"></i>
+                        Back to Dashboard
+                    </a>
+                    <button class="btn btn-success" onclick="generatePredictions()">
+                        <i class="fas fa-magic"></i>
+                        Generate Predictions
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </main>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', function() {
+    const plantId = '{{ plant.id }}';
+    
+    {% if predictions %}
+    // Initialize prediction charts
+    if (typeof initializePredictionCharts === 'function') {
+        initializePredictionCharts(plantId);
+    }
+    {% endif %}
+    
+    console.log('Clean Predictions initialized for plant:', plantId);
+});
+
+function downloadPredictions(type) {
+    const plantId = '{{ plant.id }}';
+    window.open(`/api/export_predictions/${plantId}?type=${type}`, '_blank');
+}
+
+function toggleTableView() {
+    const table = document.querySelector('.table-container');
+    table.style.display = table.style.display === 'none' ? 'block' : 'none';
+}
+
+function generatePredictions() {
+    const plantId = '{{ plant.id }}';
+    window.location.href = `/dashboard/${plantId}`;
+}
+</script>
+{% endblock %}
