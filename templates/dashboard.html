@@ -1,302 +1,613 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - {{ plant.name }} | VVCE Solar ML Predictor{% endblock %}
+{% block title %}VVCE Solar Dashboard - Real-Time Monitoring{% endblock %}
 
-{% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/clean-layout.css') }}">
+{% block extra_head %}
+<style>
+    .dashboard-header {
+        background: var(--gradient-primary);
+        color: white;
+        border-radius: 1rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .metric-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: var(--shadow-light);
+        transition: all 0.3s ease;
+        border-left: 4px solid;
+        height: 100%;
+    }
+    
+    .metric-card:hover {
+        box-shadow: var(--shadow-medium);
+        transform: translateY(-2px);
+    }
+    
+    .metric-card.energy { border-left-color: var(--success-color); }
+    .metric-card.revenue { border-left-color: var(--accent-color); }
+    .metric-card.efficiency { border-left-color: var(--primary-color); }
+    .metric-card.weather { border-left-color: #06b6d4; }
+    
+    .metric-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .metric-label {
+        color: var(--text-secondary);
+        font-weight: 500;
+        margin-bottom: 1rem;
+    }
+    
+    .metric-trend {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .chart-section {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: var(--shadow-light);
+        margin-bottom: 2rem;
+    }
+    
+    .chart-tabs {
+        border-bottom: 2px solid var(--border-color);
+        margin-bottom: 1.5rem;
+    }
+    
+    .chart-tab {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        background: none;
+        color: var(--text-secondary);
+        font-weight: 500;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.3s ease;
+    }
+    
+    .chart-tab.active {
+        color: var(--primary-color);
+        border-bottom-color: var(--primary-color);
+    }
+    
+    .chart-tab:hover {
+        color: var(--primary-color);
+    }
+    
+    .plant-selector {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 0.5rem;
+        color: white;
+        padding: 0.5rem 1rem;
+    }
+    
+    .plant-selector option {
+        background: var(--surface-dark);
+        color: white;
+    }
+    
+    .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 0.5rem;
+    }
+    
+    .status-online { background: var(--success-color); }
+    .status-offline { background: var(--warning-color); }
+    .status-maintenance { background: #6b7280; }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="app-container">
-    <!-- Sidebar -->
-    <aside class="app-sidebar">
-        <div class="sidebar-header">
-            <div class="sidebar-title">
-                <i class="fas fa-solar-panel"></i>
-                Solar Plants
-            </div>
-            <div class="sidebar-subtitle">VVCE Campus</div>
-        </div>
-        
-        <div class="plant-list">
-            {% for p in all_plants %}
-            <a href="{{ url_for('dashboard', plant_id=p.id) }}" 
-               class="plant-item {% if p.id == plant.id %}active{% endif %}">
-                <div class="plant-name">{{ p.name }}</div>
-                <div class="plant-details">
-                    <div class="plant-location">
-                        <i class="fas fa-map-marker-alt"></i>
-                        {{ p.location }}
-                    </div>
-                    <div class="plant-capacity">
-                        <i class="fas fa-bolt"></i>
-                        {{ p.capacity_mw }} MW
-                    </div>
-                </div>
-            </a>
-            {% endfor %}
-        </div>
-        
-        <div class="sidebar-footer">
-            <i class="fas fa-building"></i>
-            {{ all_plants|length }} Total Plants
-        </div>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="app-main">
-        <!-- Page Header -->
-        <div class="page-header">
-            <h1 class="page-title">
-                <i class="fas fa-solar-panel" style="color: #f59e0b;"></i>
-                {{ plant.name }}
+<!-- Dashboard Header -->
+<div class="dashboard-header" data-aos="fade-up">
+    <div class="row align-items-center">
+        <div class="col-lg-8">
+            <h1 class="mb-2">
+                <i class="fas fa-solar-panel me-3"></i>
+                Solar Plant Dashboard
             </h1>
-            <p class="page-subtitle">
-                <i class="fas fa-map-marker-alt"></i> {{ plant.location }} •
-                <i class="fas fa-bolt"></i> {{ plant.capacity_mw }} MW Capacity •
-                <i class="fas fa-calendar"></i> Installed {{ plant.installation_date.strftime('%B %Y') }}
+            <p class="mb-3 opacity-90">
+                Real-time monitoring and analytics for {{ selected_plant.name if selected_plant else 'All Plants' }}
             </p>
-        </div>
-
-        <!-- Statistics -->
-        <div class="stats-container">
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon">
-                        <i class="fas fa-percentage"></i>
-                    </div>
-                </div>
-                <div class="stat-value">{{ '{:.1f}'.format(current_efficiency or 15.8) }}%</div>
-                <div class="stat-label">System Efficiency</div>
-            </div>
-
-            <div class="stat-card success">
-                <div class="stat-header">
-                    <div class="stat-icon success">
-                        <i class="fas fa-bolt"></i>
-                    </div>
-                </div>
-                <div class="stat-value">{{ '{:.1f}'.format(today_production or 42.3) }}</div>
-                <div class="stat-label">Today's Energy (kWh)</div>
-            </div>
-
-            <div class="stat-card warning">
-                <div class="stat-header">
-                    <div class="stat-icon warning">
-                        <i class="fas fa-rupee-sign"></i>
-                    </div>
-                </div>
-                <div class="stat-value">₹{{ '{:,.0f}'.format(today_revenue or 2540) }}</div>
-                <div class="stat-label">Today's Revenue</div>
-            </div>
-
-            <div class="stat-card" style="border-top-color: #06b6d4;">
-                <div class="stat-header">
-                    <div class="stat-icon" style="background: #06b6d4;">
-                        <i class="fas fa-cloud-sun"></i>
-                    </div>
-                </div>
-                <div class="stat-value">{{ current_weather.temperature or 28 }}°C</div>
-                <div class="stat-label">Current Temperature</div>
+            <div class="d-flex align-items-center gap-3">
+                <span class="status-indicator status-online"></span>
+                <span>System Online</span>
+                <span class="mx-2">•</span>
+                <i class="fas fa-clock me-1"></i>
+                <span>Last updated: {{ current_time.strftime('%H:%M') }}</span>
             </div>
         </div>
-
-        <!-- Charts Section -->
-        <div class="chart-box">
-            <div class="chart-header">
-                <h2 class="chart-title">
-                    <i class="fas fa-chart-line"></i>
-                    Energy Production Trends
-                </h2>
-                <div class="flex gap-2">
-                    <button class="btn btn-secondary btn-sm" onclick="refreshCharts()">
-                        <i class="fas fa-sync-alt"></i>
-                        Refresh
-                    </button>
-                    <a href="{{ url_for('predictions', plant_id=plant.id) }}" class="btn btn-primary btn-sm">
-                        <i class="fas fa-crystal-ball"></i>
-                        View Predictions
-                    </a>
-                </div>
-            </div>
-            <div class="chart-content">
-                <canvas id="productionChart"></canvas>
-            </div>
-        </div>
-
-        <div class="content-grid" style="grid-template-columns: 1fr 1fr; gap: 2rem;">
-            <!-- Revenue Chart -->
-            <div class="chart-box">
-                <div class="chart-header">
-                    <h2 class="chart-title">
-                        <i class="fas fa-rupee-sign"></i>
-                        Revenue Analytics
-                    </h2>
-                </div>
-                <div class="chart-content">
-                    <canvas id="revenueChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Efficiency Chart -->
-            <div class="chart-box">
-                <div class="chart-header">
-                    <h2 class="chart-title">
-                        <i class="fas fa-cogs"></i>
-                        System Performance
-                    </h2>
-                </div>
-                <div class="chart-content">
-                    <canvas id="efficiencyChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Action Cards -->
-        <div class="content-section">
-            <div class="section-header">
-                <h2 class="section-title">
-                    <i class="fas fa-brain"></i>
-                    Machine Learning Models
-                </h2>
-            </div>
-            <div class="section-content">
-                <div class="action-grid">
-                    <div class="action-card">
-                        <button class="btn btn-primary" onclick="trainRealisticModel('{{ plant.id }}')">
-                            <i class="fas fa-brain"></i>
-                            Train Physics Model
-                        </button>
-                        <p class="text-sm opacity-75 mt-2">Using real weather data</p>
-                    </div>
-                    
-                    <div class="action-card">
-                        <button class="btn btn-success" onclick="generateRealisticPredictions('{{ plant.id }}')">
-                            <i class="fas fa-chart-line"></i>
-                            Generate Forecasts
-                        </button>
-                        <p class="text-sm opacity-75 mt-2">6-month predictions</p>
-                    </div>
-                    
-                    <div class="action-card">
-                        <a href="{{ url_for('analytics_dashboard', plant_id=plant.id) }}" class="btn" style="background: #06b6d4; color: white;">
-                            <i class="fas fa-chart-pie"></i>
-                            Advanced Analytics
-                        </a>
-                        <p class="text-sm opacity-75 mt-2">Detailed insights</p>
-                    </div>
-                    
-                    <div class="action-card">
-                        <a href="{{ url_for('data_editor', plant_id=plant.id) }}" class="btn btn-warning">
-                            <i class="fas fa-edit"></i>
-                            Data Editor
-                        </a>
-                        <p class="text-sm opacity-75 mt-2">Manage data</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-</div>
-
-<!-- Loading Modal -->
-<div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-body text-center py-4">
-                <div class="spinner-border text-primary mb-3" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <h5 id="loadingMessage">Processing...</h5>
-                <p class="text-muted mb-0">Please wait while we process your request.</p>
+        <div class="col-lg-4 text-lg-end">
+            <div class="d-flex flex-column gap-2">
+                <select class="plant-selector" onchange="changePlant(this.value)">
+                    <option value="">All Plants</option>
+                    {% for plant in plants %}
+                    <option value="{{ plant.id }}" {{ 'selected' if selected_plant and selected_plant.id == plant.id }}>
+                        {{ plant.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <button class="btn btn-outline-light btn-sm" onclick="refreshData()" data-loading>
+                    <i class="fas fa-sync-alt me-1"></i>
+                    Refresh Data
+                </button>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_scripts %}
-<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
-<script type="text/javascript">
+<!-- Key Metrics -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="100">
+        <div class="metric-card energy">
+            <div class="d-flex align-items-start justify-content-between">
+                <div>
+                    <div class="metric-value text-success">{{ "%.1f"|format(metrics.energy_today) }}</div>
+                    <div class="metric-label">Energy Today (kWh)</div>
+                    <div class="metric-trend">
+                        <i class="fas fa-arrow-up text-success"></i>
+                        <span class="text-success">+{{ "%.1f"|format(metrics.energy_change) }}%</span>
+                        <span class="text-muted">vs yesterday</span>
+                    </div>
+                </div>
+                <div class="metric-icon">
+                    <i class="fas fa-bolt" style="font-size: 2rem; color: var(--success-color); opacity: 0.7;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="200">
+        <div class="metric-card revenue">
+            <div class="d-flex align-items-start justify-content-between">
+                <div>
+                    <div class="metric-value text-warning">₹{{ "%.0f"|format(metrics.revenue_today) }}</div>
+                    <div class="metric-label">Revenue Today</div>
+                    <div class="metric-trend">
+                        <i class="fas fa-arrow-up text-success"></i>
+                        <span class="text-success">+{{ "%.1f"|format(metrics.revenue_change) }}%</span>
+                        <span class="text-muted">vs yesterday</span>
+                    </div>
+                </div>
+                <div class="metric-icon">
+                    <i class="fas fa-rupee-sign" style="font-size: 2rem; color: var(--accent-color); opacity: 0.7;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="300">
+        <div class="metric-card efficiency">
+            <div class="d-flex align-items-start justify-content-between">
+                <div>
+                    <div class="metric-value text-primary">{{ "%.1f"|format(metrics.efficiency_today) }}%</div>
+                    <div class="metric-label">System Efficiency</div>
+                    <div class="metric-trend">
+                        <i class="fas fa-{{ 'arrow-up' if metrics.efficiency_change > 0 else 'arrow-down' }} text-{{ 'success' if metrics.efficiency_change > 0 else 'danger' }}"></i>
+                        <span class="text-{{ 'success' if metrics.efficiency_change > 0 else 'danger' }}">{{ "%.1f"|format(metrics.efficiency_change) }}%</span>
+                        <span class="text-muted">vs yesterday</span>
+                    </div>
+                </div>
+                <div class="metric-icon">
+                    <i class="fas fa-gauge-high" style="font-size: 2rem; color: var(--primary-color); opacity: 0.7;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="400">
+        <div class="metric-card weather">
+            <div class="d-flex align-items-start justify-content-between">
+                <div>
+                    <div class="metric-value" style="color: #06b6d4;">{{ "%.1f"|format(weather.temperature) }}°C</div>
+                    <div class="metric-label">Current Temperature</div>
+                    <div class="metric-trend">
+                        <i class="fas fa-sun text-warning"></i>
+                        <span class="text-info">{{ "%.1f"|format(weather.solar_irradiance) }} kWh/m²</span>
+                        <span class="text-muted">irradiance</span>
+                    </div>
+                </div>
+                <div class="metric-icon">
+                    <i class="fas fa-thermometer-half" style="font-size: 2rem; color: #06b6d4; opacity: 0.7;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row">
+    <div class="col-12">
+        <div class="chart-section" data-aos="fade-up">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="mb-0">
+                    <i class="fas fa-chart-line text-primary me-2"></i>
+                    Performance Analytics
+                </h3>
+                <div class="chart-tabs">
+                    <button class="chart-tab active" onclick="switchChart('energy')">Energy Production</button>
+                    <button class="chart-tab" onclick="switchChart('revenue')">Revenue</button>
+                    <button class="chart-tab" onclick="switchChart('efficiency')">Efficiency</button>
+                    <button class="chart-tab" onclick="switchChart('weather')">Weather Impact</button>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="mainChart" width="400" height="200"></canvas>
+            </div>
+            
+            <div class="row mt-4">
+                <div class="col-md-4">
+                    <div class="chart-info">
+                        <h6 class="text-primary">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Chart Insights
+                        </h6>
+                        <ul class="list-unstyled text-muted small">
+                            <li>• Peak performance: 11:00 AM - 2:00 PM</li>
+                            <li>• Average daily efficiency: {{ "%.1f"|format(metrics.efficiency_today) }}%</li>
+                            <li>• Weather impact correlation: 87%</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="chart-info">
+                        <h6 class="text-success">
+                            <i class="fas fa-trophy me-1"></i>
+                            Best Performance
+                        </h6>
+                        <ul class="list-unstyled text-muted small">
+                            <li>• Highest energy: {{ "%.1f"|format(metrics.peak_energy) }} kWh</li>
+                            <li>• Best efficiency: {{ "%.1f"|format(metrics.peak_efficiency) }}%</li>
+                            <li>• Optimal conditions: Clear sky, 25°C</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="chart-info">
+                        <h6 class="text-warning">
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            Optimization Tips
+                        </h6>
+                        <ul class="list-unstyled text-muted small">
+                            <li>• Schedule cleaning during low-wind periods</li>
+                            <li>• Monitor inverter performance at peak hours</li>
+                            <li>• Check panel alignment quarterly</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Secondary Charts -->
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="chart-section" data-aos="fade-up" data-aos-delay="100">
+            <h4 class="mb-3">
+                <i class="fas fa-calendar-week text-primary me-2"></i>
+                Weekly Trends
+            </h4>
+            <div class="chart-container" style="height: 300px;">
+                <canvas id="weeklyChart" width="400" height="150"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6 mb-4">
+        <div class="chart-section" data-aos="fade-up" data-aos-delay="200">
+            <h4 class="mb-3">
+                <i class="fas fa-pie-chart text-primary me-2"></i>
+                Energy Distribution
+            </h4>
+            <div class="chart-container" style="height: 300px;">
+                <canvas id="distributionChart" width="400" height="150"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="row">
+    <div class="col-lg-8 mb-4">
+        <div class="card" data-aos="fade-up">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-history text-primary me-2"></i>
+                    Recent Activity
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Event</th>
+                                <th>Plant</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for activity in recent_activity %}
+                            <tr>
+                                <td>{{ activity.time }}</td>
+                                <td>{{ activity.event }}</td>
+                                <td>{{ activity.plant }}</td>
+                                <td>
+                                    <span class="badge bg-{{ activity.status_color }}">
+                                        {{ activity.status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 mb-4">
+        <div class="card" data-aos="fade-up" data-aos-delay="100">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-bell text-warning me-2"></i>
+                    System Alerts
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for alert in system_alerts %}
+                <div class="alert alert-{{ alert.type }} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-{{ alert.icon }} me-2"></i>
+                    <strong>{{ alert.title }}</strong><br>
+                    <small>{{ alert.message }}</small>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% else %}
+                <div class="text-center text-muted">
+                    <i class="fas fa-check-circle text-success" style="font-size: 2rem;"></i>
+                    <p class="mt-2">All systems operating normally</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentChart = null;
+let chartType = 'energy';
+
+// Chart configuration
+const chartConfig = {
+    energy: {
+        label: 'Energy Production (kWh)',
+        borderColor: 'rgb(34, 197, 94)',
+        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+        icon: 'fas fa-bolt'
+    },
+    revenue: {
+        label: 'Revenue (₹)',
+        borderColor: 'rgb(245, 158, 11)',
+        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+        icon: 'fas fa-rupee-sign'
+    },
+    efficiency: {
+        label: 'Efficiency (%)',
+        borderColor: 'rgb(59, 130, 246)',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        icon: 'fas fa-gauge-high'
+    },
+    weather: {
+        label: 'Temperature (°C)',
+        borderColor: 'rgb(6, 182, 212)',
+        backgroundColor: 'rgba(6, 182, 212, 0.1)',
+        icon: 'fas fa-thermometer-half'
+    }
+};
+
+function switchChart(type) {
+    chartType = type;
+    
+    // Update tab styling
+    document.querySelectorAll('.chart-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Load chart data
+    loadChartData(type);
+}
+
+function changePlant(plantId) {
+    const url = plantId ? `/dashboard/${plantId}` : '/dashboard';
+    window.location.href = url;
+}
+
+async function loadChartData(type) {
+    try {
+        const plantId = {{ selected_plant.id if selected_plant else 'null' }};
+        const response = await fetch(`/api/chart_data/${plantId || 'all'}/${type}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            updateChart(data.chart_data, type);
+        } else {
+            console.error('Failed to load chart data:', data.error);
+        }
+    } catch (error) {
+        console.error('Error loading chart data:', error);
+    }
+}
+
+function updateChart(data, type) {
+    const ctx = document.getElementById('mainChart').getContext('2d');
+    const config = chartConfig[type];
+    
+    if (currentChart) {
+        currentChart.destroy();
+    }
+    
+    currentChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.labels,
+            datasets: [{
+                label: config.label,
+                data: data.values,
+                borderColor: config.borderColor,
+                backgroundColor: config.backgroundColor,
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: config.borderColor,
+                pointRadius: 4,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleColor: 'white',
+                    bodyColor: 'white',
+                    borderColor: config.borderColor,
+                    borderWidth: 1,
+                    cornerRadius: 8,
+                    displayColors: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(148, 163, 184, 0.1)'
+                    },
+                    ticks: {
+                        color: 'rgba(100, 116, 139, 0.8)'
+                    }
+                },
+                x: {
+                    grid: {
+                        color: 'rgba(148, 163, 184, 0.1)'
+                    },
+                    ticks: {
+                        color: 'rgba(100, 116, 139, 0.8)'
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        }
+    });
+}
+
+// Initialize secondary charts
+function initializeSecondaryCharts() {
+    // Weekly trends chart
+    const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
+    new Chart(weeklyCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ weekly_data.labels | tojsonfilter }},
+            datasets: [{
+                label: 'Weekly Energy (kWh)',
+                data: {{ weekly_data.values | tojsonfilter }},
+                backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true },
+                x: { display: false }
+            }
+        }
+    });
+    
+    // Distribution chart
+    const distributionCtx = document.getElementById('distributionChart').getContext('2d');
+    new Chart(distributionCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ distribution_data.labels | tojsonfilter }},
+            datasets: [{
+                data: {{ distribution_data.values | tojsonfilter }},
+                backgroundColor: [
+                    'rgba(34, 197, 94, 0.8)',
+                    'rgba(59, 130, 246, 0.8)',
+                    'rgba(245, 158, 11, 0.8)',
+                    'rgba(239, 68, 68, 0.8)'
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { usePointStyle: true }
+                }
+            }
+        }
+    });
+}
+
+async function refreshData() {
+    try {
+        const response = await fetch('/api/refresh_dashboard_data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            window.location.reload();
+        } else {
+            alert('Failed to refresh data: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error refreshing data: ' + error.message);
+    }
+}
+
+// Initialize dashboard
 document.addEventListener('DOMContentLoaded', function() {
-    const plantId = '{{ plant.id }}';
+    loadChartData(chartType);
+    initializeSecondaryCharts();
     
-    // Initialize charts
-    if (typeof initializeCharts === 'function') {
-        initializeCharts(plantId);
-    }
-    
-    console.log('Clean Dashboard initialized for plant:', plantId);
+    // Auto-refresh every 5 minutes
+    setInterval(() => {
+        loadChartData(chartType);
+    }, 300000);
 });
-
-function refreshCharts() {
-    showLoadingModal('Refreshing charts...');
-    setTimeout(() => {
-        location.reload();
-    }, 1000);
-}
-
-function showLoadingModal(message) {
-    document.getElementById('loadingMessage').textContent = message;
-    const modal = new bootstrap.Modal(document.getElementById('loadingModal'));
-    modal.show();
-}
-
-function hideLoadingModal() {
-    const modal = bootstrap.Modal.getInstance(document.getElementById('loadingModal'));
-    if (modal) {
-        modal.hide();
-    }
-}
-
-function trainRealisticModel(plantId) {
-    showLoadingModal('Training physics-based ML model...');
-    
-    fetch(`/api/train_model/${plantId}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        hideLoadingModal();
-        if (data.success) {
-            alert('Model trained successfully!');
-            location.reload();
-        } else {
-            alert('Error training model: ' + data.message);
-        }
-    })
-    .catch(error => {
-        hideLoadingModal();
-        alert('Error: ' + error.message);
-    });
-}
-
-function generateRealisticPredictions(plantId) {
-    showLoadingModal('Generating 6-month predictions...');
-    
-    fetch(`/api/generate_predictions/${plantId}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        hideLoadingModal();
-        if (data.success) {
-            alert('Predictions generated successfully!');
-            window.location.href = `/predictions/${plantId}`;
-        } else {
-            alert('Error generating predictions: ' + data.message);
-        }
-    })
-    .catch(error => {
-        hideLoadingModal();
-        alert('Error: ' + error.message);
-    });
-}
 </script>
 {% endblock %}
