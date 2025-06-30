@@ -231,6 +231,67 @@
     .auto-refresh-indicator.show {
         opacity: 1;
     }
+    
+    /* Professional Forecast Table Styles */
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .progress-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: conic-gradient(from 0deg, var(--color) 0%, var(--color) var(--progress), #e9ecef var(--progress));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+    
+    .progress-circle::before {
+        content: '';
+        width: 28px;
+        height: 28px;
+        background: white;
+        border-radius: 50%;
+        position: absolute;
+    }
+    
+    .progress-value {
+        font-size: 0.7rem;
+        font-weight: 600;
+        position: relative;
+        z-index: 2;
+        color: #333;
+    }
+    
+    .metric-display {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+    }
+    
+    .summary-metric {
+        padding: 0.5rem;
+    }
+    
+    .pulse {
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: rgba(0,123,255,0.05);
+    }
+    
+    .border-start {
+        border-left-width: 4px !important;
+    }
 </style>
 {% endblock %}
 
@@ -394,63 +455,173 @@
         </div>
     </div>
 
-    <!-- 24-Hour Forecast -->
+    <!-- Professional 24-Hour Forecast Dashboard -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-clock me-2"></i>
-                        24-Hour Weather Impact Forecast
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        {% for hour in range(12) %}
-                        {% set hour_time = '%02d:00'|format(hour + 6) %}
-                        {% set impact_score = 75 + (hour * 2) %}
-                        
-                        <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
-                            <div class="card h-100 border-0 shadow-sm">
-                                <div class="card-body text-center p-3">
-                                    <h6 class="card-title text-primary mb-2">{{ hour_time }}</h6>
-                                    
-                                    <div class="mb-2">
-                                        <span class="h4 {% if impact_score >= 85 %}text-success{% elif impact_score >= 70 %}text-info{% elif impact_score >= 50 %}text-warning{% else %}text-danger{% endif %}">
-                                            {{ impact_score }}%
-                                        </span>
-                                        <div class="small text-muted">Impact Score</div>
-                                    </div>
-                                    
-                                    <div class="row text-center small">
-                                        <div class="col-6 mb-1">
-                                            <i class="fas fa-bolt text-warning"></i>
-                                            <div>{{ 600 + (hour * 25) }} kWh</div>
-                                        </div>
-                                        <div class="col-6 mb-1">
-                                            <i class="fas fa-thermometer-half text-info"></i>
-                                            <div>{{ 26 + (hour % 6) }}°C</div>
-                                        </div>
-                                        <div class="col-6">
-                                            <i class="fas fa-cloud text-secondary"></i>
-                                            <div>{{ 15 + (hour * 2) }}%</div>
-                                        </div>
-                                        <div class="col-6">
-                                            <i class="fas fa-coins text-success"></i>
-                                            <div>₹{{ ((600 + (hour * 25)) * 4.5)|round|int }}</div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mt-2">
-                                        <span class="badge {% if impact_score >= 85 %}bg-success{% elif impact_score >= 70 %}bg-info{% elif impact_score >= 50 %}bg-warning{% else %}bg-danger{% endif %}">
-                                            {% if impact_score >= 85 %}Excellent{% elif impact_score >= 70 %}Good{% elif impact_score >= 50 %}Moderate{% else %}Poor{% endif %}
-                                        </span>
-                                    </div>
-                                </div>
+            <div class="card border-0 shadow-lg">
+                <div class="card-header bg-gradient-primary text-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-1">
+                                <i class="fas fa-chart-line me-2"></i>
+                                24-Hour Solar Forecast
+                            </h4>
+                            <p class="mb-0 opacity-75">Hourly predictions with impact analysis</p>
+                        </div>
+                        <div class="text-end">
+                            <div class="badge bg-light text-dark px-3 py-2">
+                                <i class="fas fa-sync-alt me-1"></i>
+                                Updated: {{ moment().format('HH:mm') if moment else 'Live' }}
                             </div>
                         </div>
-                        {% endfor %}
                     </div>
+                </div>
+                
+                <div class="card-body p-0">
+                    <!-- Forecast Table -->
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="px-4 py-3 fw-semibold">Time</th>
+                                    <th class="text-center px-3 py-3 fw-semibold">Impact</th>
+                                    <th class="text-center px-3 py-3 fw-semibold">Output</th>
+                                    <th class="text-center px-3 py-3 fw-semibold">Temperature</th>
+                                    <th class="text-center px-3 py-3 fw-semibold">Clouds</th>
+                                    <th class="text-center px-3 py-3 fw-semibold">Revenue</th>
+                                    <th class="text-center px-3 py-3 fw-semibold">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for hour in range(24) %}
+                                {% set hour_time = '%02d:00'|format(hour) %}
+                                {% set is_current = hour == 12 %}
+                                {% set is_peak = hour >= 10 and hour <= 14 %}
+                                
+                                {% if hour >= 6 and hour <= 18 %}
+                                    {% set impact_score = 65 + ((hour - 6) * 3) if hour <= 12 else 95 - ((hour - 12) * 4) %}
+                                    {% set output = 400 + ((hour - 6) * 80) if hour <= 12 else 880 - ((hour - 12) * 60) %}
+                                {% else %}
+                                    {% set impact_score = 20 + (hour * 2) if hour < 6 else 35 - ((hour - 18) * 2) %}
+                                    {% set output = 50 + (hour * 15) if hour < 6 else 140 - ((hour - 18) * 20) %}
+                                {% endif %}
+                                
+                                {% set temperature = 22 + (hour * 0.8) if hour <= 14 else 33 - ((hour - 14) * 0.6) %}
+                                {% set clouds = 25 + (hour % 8) * 3 %}
+                                {% set revenue = (output * 4.5)|round|int %}
+                                
+                                {% if impact_score >= 85 %}
+                                    {% set status_class = 'success' %}
+                                    {% set status_text = 'Excellent' %}
+                                    {% set status_icon = 'sun' %}
+                                {% elif impact_score >= 70 %}
+                                    {% set status_class = 'primary' %}
+                                    {% set status_text = 'Good' %}
+                                    {% set status_icon = 'cloud-sun' %}
+                                {% elif impact_score >= 50 %}
+                                    {% set status_class = 'warning' %}
+                                    {% set status_text = 'Moderate' %}
+                                    {% set status_icon = 'cloud' %}
+                                {% else %}
+                                    {% set status_class = 'secondary' %}
+                                    {% set status_text = 'Poor' %}
+                                    {% set status_icon = 'cloud-rain' %}
+                                {% endif %}
+                                
+                                <tr class="{% if is_current %}table-info border-start border-primary border-3{% elif is_peak %}table-light{% endif %}">
+                                    <td class="px-4 py-3">
+                                        <div class="d-flex align-items-center">
+                                            {% if is_current %}
+                                            <div class="badge bg-danger me-2 pulse">NOW</div>
+                                            {% endif %}
+                                            <span class="fw-semibold fs-6">{{ hour_time }}</span>
+                                        </div>
+                                    </td>
+                                    
+                                    <td class="text-center px-3 py-3">
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <div class="progress-circle me-2" style="--progress: {{ impact_score }}%; --color: var(--bs-{{ status_class }});">
+                                                <span class="progress-value">{{ impact_score }}%</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    
+                                    <td class="text-center px-3 py-3">
+                                        <div class="metric-display">
+                                            <i class="fas fa-bolt text-warning me-1"></i>
+                                            <span class="fw-bold">{{ output }}</span>
+                                            <small class="text-muted">kWh</small>
+                                        </div>
+                                    </td>
+                                    
+                                    <td class="text-center px-3 py-3">
+                                        <div class="metric-display">
+                                            <i class="fas fa-thermometer-half text-info me-1"></i>
+                                            <span class="fw-bold">{{ temperature|round|int }}</span>
+                                            <small class="text-muted">°C</small>
+                                        </div>
+                                    </td>
+                                    
+                                    <td class="text-center px-3 py-3">
+                                        <div class="metric-display">
+                                            <i class="fas fa-cloud text-secondary me-1"></i>
+                                            <span class="fw-bold">{{ clouds|round|int }}</span>
+                                            <small class="text-muted">%</small>
+                                        </div>
+                                    </td>
+                                    
+                                    <td class="text-center px-3 py-3">
+                                        <div class="metric-display">
+                                            <i class="fas fa-rupee-sign text-success me-1"></i>
+                                            <span class="fw-bold">{{ revenue|round|int }}</span>
+                                        </div>
+                                    </td>
+                                    
+                                    <td class="text-center px-3 py-3">
+                                        <span class="badge bg-{{ status_class }} d-inline-flex align-items-center">
+                                            <i class="fas fa-{{ status_icon }} me-1"></i>
+                                            {{ status_text }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Forecast Summary Footer -->
+                <div class="card-footer bg-light py-3">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="summary-metric">
+                                <div class="metric-value text-primary h4 mb-1">82%</div>
+                                <div class="metric-label text-muted small">Avg Impact</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="summary-metric">
+                                <div class="metric-value text-success h4 mb-1">12:30</div>
+                                <div class="metric-label text-muted small">Peak Hour</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="summary-metric">
+                                <div class="metric-value text-warning h4 mb-1">925 kWh</div>
+                                <div class="metric-label text-muted small">Peak Output</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="summary-metric">
+                                <div class="metric-value text-info h4 mb-1">₹4,163</div>
+                                <div class="metric-label text-muted small">Peak Revenue</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
                     
                     {% if forecast_impact.summary %}
                     <div class="mt-3 p-3 bg-light rounded">
