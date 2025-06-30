@@ -3,455 +3,361 @@
 {% block title %}Data Editor - {{ plant.name }} | VVCE Solar ML Predictor{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard-layout.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/clean-layout.css') }}">
 <style>
-.data-table {
-    background: white;
-    border-radius: var(--border-radius-lg);
-    box-shadow: var(--shadow-md);
+.tab-content {
+    background: var(--white);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
     overflow: hidden;
 }
 
-.table-header {
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
-    color: white;
-    padding: var(--spacing-lg);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.data-filters {
-    background: var(--gray-50);
-    padding: var(--spacing-lg);
+.nav-tabs {
     border-bottom: 1px solid var(--gray-200);
-    display: flex;
-    gap: var(--spacing-md);
-    flex-wrap: wrap;
-    align-items: center;
+    background: var(--gray-100);
+    padding: 0 1.5rem;
+    margin: 0;
 }
 
-.filter-group {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
-}
-
-.filter-group label {
-    font-size: 0.875rem;
+.nav-tabs .nav-link {
+    border: none;
+    background: none;
+    color: var(--gray-600);
+    padding: 1rem 1.5rem;
+    border-radius: 0;
     font-weight: 600;
-    color: var(--gray-700);
+    font-size: 0.875rem;
 }
 
-.filter-input {
-    padding: var(--spacing-sm) var(--spacing-md);
-    border: 1px solid var(--gray-300);
-    border-radius: var(--border-radius-sm);
-    font-size: 0.875rem;
+.nav-tabs .nav-link.active {
+    background: var(--white);
+    color: var(--primary);
+    border-bottom: 2px solid var(--primary);
 }
 
 .editable-cell {
     cursor: pointer;
     transition: background-color 0.2s ease;
+    position: relative;
 }
 
 .editable-cell:hover {
-    background-color: var(--gray-100);
-}
-
-.editable-cell.editing {
-    background-color: var(--primary-light);
-    color: white;
+    background-color: var(--gray-100) !important;
 }
 
 .edit-input {
-    border: none;
-    background: transparent;
-    color: inherit;
+    border: 2px solid var(--primary);
+    border-radius: var(--radius);
+    padding: 0.25rem;
     width: 100%;
-    padding: var(--spacing-xs);
     font-size: inherit;
+    background: var(--white);
 }
 
-.edit-input:focus {
-    outline: 2px solid var(--warning-color);
-    border-radius: var(--border-radius-sm);
+.changed-cell {
+    background-color: #fef3c7 !important;
+    position: relative;
 }
 
-.data-actions {
-    display: flex;
-    gap: var(--spacing-sm);
-}
-
-.pagination-container {
-    display: flex;
-    justify-content: between;
-    align-items: center;
-    padding: var(--spacing-lg);
-    background: var(--gray-50);
-    border-top: 1px solid var(--gray-200);
-}
-
-.records-info {
-    color: var(--gray-600);
-    font-size: 0.875rem;
+.changed-cell::after {
+    content: '•';
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    color: var(--warning);
+    font-weight: bold;
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="dashboard-container">
-    <div class="dashboard-layout">
-        <!-- Sidebar -->
-        <aside class="dashboard-sidebar">
-            <div class="sidebar-content">
-                <div class="sidebar-header">
-                    <h5 class="sidebar-title">
-                        <i class="fas fa-solar-panel"></i>
-                        Solar Plants
-                    </h5>
-                    <span class="sidebar-subtitle">VVCE Campus</span>
-                </div>
-                
-                <nav class="plant-navigation">
-                    {% for p in all_plants %}
-                    <a href="{{ url_for('data_editor', plant_id=p.id) }}" 
-                       class="plant-nav-item {% if p.id == plant.id %}active{% endif %}">
-                        <div class="plant-nav-content">
-                            <div class="plant-nav-info">
-                                <h6 class="plant-nav-name">{{ p.name }}</h6>
-                                <div class="plant-nav-details">
-                                    <span class="plant-nav-location">
-                                        <i class="fas fa-map-marker-alt"></i>{{ p.location }}
-                                    </span>
-                                    <span class="plant-nav-capacity">
-                                        <i class="fas fa-bolt"></i>{{ p.capacity_mw }} MW
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="plant-nav-status">
-                                <span class="status-dot active"></span>
-                            </div>
-                        </div>
-                    </a>
-                    {% endfor %}
-                </nav>
-                
-                <div class="sidebar-footer">
-                    <div class="plant-count">
-                        <i class="fas fa-building"></i>
-                        <span>{{ all_plants|length }} Total Plants</span>
+<div class="app-container">
+    <!-- Sidebar -->
+    <aside class="app-sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-title">
+                <i class="fas fa-solar-panel"></i>
+                Solar Plants
+            </div>
+            <div class="sidebar-subtitle">VVCE Campus</div>
+        </div>
+        
+        <div class="plant-list">
+            {% for p in all_plants %}
+            <a href="{{ url_for('data_editor', plant_id=p.id) }}" 
+               class="plant-item {% if p.id == plant.id %}active{% endif %}">
+                <div class="plant-name">{{ p.name }}</div>
+                <div class="plant-details">
+                    <div class="plant-location">
+                        <i class="fas fa-map-marker-alt"></i>
+                        {{ p.location }}
+                    </div>
+                    <div class="plant-capacity">
+                        <i class="fas fa-bolt"></i>
+                        {{ p.capacity_mw }} MW
                     </div>
                 </div>
-            </div>
-        </aside>
+            </a>
+            {% endfor %}
+        </div>
+        
+        <div class="sidebar-footer">
+            <i class="fas fa-building"></i>
+            {{ all_plants|length }} Total Plants
+        </div>
+    </aside>
 
-        <!-- Main Content -->
-        <main class="dashboard-main">
-            <div class="dashboard-content">
-                <!-- Page Header -->
-                <header class="page-header">
-                    <h1 class="page-title">
-                        <i class="fas fa-edit"></i>
-                        Data Editor - {{ plant.name }}
-                    </h1>
-                    <p class="page-subtitle">
-                        <i class="fas fa-database"></i> Manage and edit solar plant data
-                        &nbsp;•&nbsp;
-                        <i class="fas fa-shield-alt"></i> VVCE Authorized Personnel Only
-                        &nbsp;•&nbsp;
-                        <i class="fas fa-save"></i> Auto-save enabled
-                    </p>
-                </header>
+    <!-- Main Content -->
+    <main class="app-main">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-edit" style="color: #f59e0b;"></i>
+                Data Editor - {{ plant.name }}
+            </h1>
+            <p class="page-subtitle">
+                <i class="fas fa-database"></i> Manage and edit solar plant data •
+                <i class="fas fa-shield-alt"></i> VVCE Authorized Personnel Only •
+                <i class="fas fa-save"></i> Auto-save enabled
+            </p>
+        </div>
 
-                <!-- Data Management Tabs -->
-                <div class="content-section">
-                    <ul class="nav nav-tabs" id="dataEditorTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="energy-tab" data-bs-toggle="tab" data-bs-target="#energy-data" type="button" role="tab">
-                                <i class="fas fa-bolt"></i> Energy Production
+        <!-- Data Management Tabs -->
+        <div class="content-section">
+            <ul class="nav nav-tabs" id="dataEditorTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="energy-tab" data-bs-toggle="tab" data-bs-target="#energy-data" type="button" role="tab">
+                        <i class="fas fa-bolt"></i> Energy Production
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="weather-tab" data-bs-toggle="tab" data-bs-target="#weather-data" type="button" role="tab">
+                        <i class="fas fa-cloud-sun"></i> Weather Data
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="maintenance-tab" data-bs-toggle="tab" data-bs-target="#maintenance-data" type="button" role="tab">
+                        <i class="fas fa-tools"></i> Maintenance Records
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="plant-tab" data-bs-toggle="tab" data-bs-target="#plant-data" type="button" role="tab">
+                        <i class="fas fa-cog"></i> Plant Settings
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="dataEditorTabContent">
+                <!-- Energy Production Data -->
+                <div class="tab-pane fade show active" id="energy-data" role="tabpanel">
+                    <div class="section-header">
+                        <h3 class="section-title">
+                            <i class="fas fa-bolt"></i> Energy Production Records
+                        </h3>
+                        <div class="flex gap-2">
+                            <button class="btn btn-secondary btn-sm" onclick="addEnergyRecord()">
+                                <i class="fas fa-plus"></i> Add Record
                             </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="weather-tab" data-bs-toggle="tab" data-bs-target="#weather-data" type="button" role="tab">
-                                <i class="fas fa-cloud-sun"></i> Weather Data
+                            <button class="btn btn-primary btn-sm" onclick="saveAllChanges()">
+                                <i class="fas fa-save"></i> Save Changes
                             </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="maintenance-tab" data-bs-toggle="tab" data-bs-target="#maintenance-data" type="button" role="tab">
-                                <i class="fas fa-tools"></i> Maintenance Records
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="plant-tab" data-bs-toggle="tab" data-bs-target="#plant-data" type="button" role="tab">
-                                <i class="fas fa-cog"></i> Plant Settings
-                            </button>
-                        </li>
-                    </ul>
-
-                    <div class="tab-content" id="dataEditorTabContent">
-                        <!-- Energy Production Data -->
-                        <div class="tab-pane fade show active" id="energy-data" role="tabpanel">
-                            <div class="data-table">
-                                <div class="table-header">
-                                    <h3><i class="fas fa-bolt"></i> Energy Production Records</h3>
-                                    <div class="data-actions">
-                                        <button class="action-btn secondary" onclick="addEnergyRecord()">
-                                            <i class="fas fa-plus"></i> Add Record
-                                        </button>
-                                        <button class="action-btn primary" onclick="saveAllChanges()">
-                                            <i class="fas fa-save"></i> Save Changes
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <div class="data-filters">
-                                    <div class="filter-group">
-                                        <label>Date Range</label>
-                                        <input type="date" class="filter-input" id="energyStartDate">
-                                    </div>
-                                    <div class="filter-group">
-                                        <label>to</label>
-                                        <input type="date" class="filter-input" id="energyEndDate">
-                                    </div>
-                                    <div class="filter-group">
-                                        <label>Min Energy (kWh)</label>
-                                        <input type="number" class="filter-input" placeholder="0" id="minEnergy">
-                                    </div>
-                                    <button class="action-btn info" onclick="filterEnergyData()">
-                                        <i class="fas fa-filter"></i> Filter
-                                    </button>
-                                    <button class="action-btn secondary" onclick="clearFilters()">
-                                        <i class="fas fa-times"></i> Clear
-                                    </button>
-                                </div>
-
-                                <div class="table-responsive">
-                                    <table class="table table-hover" id="energyTable">
-                                        <thead class="table-dark">
-                                            <tr>
-                                                <th>Date</th>
-                                                <th>Energy (kWh)</th>
-                                                <th>Efficiency (%)</th>
-                                                <th>Revenue (₹)</th>
-                                                <th>Tariff Rate</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for record in energy_data[:20] %}
-                                            <tr data-id="{{ record.id }}">
-                                                <td>{{ record.date.strftime('%Y-%m-%d') }}</td>
-                                                <td class="editable-cell" data-field="energy_produced">{{ '{:.2f}'.format(record.energy_produced) }}</td>
-                                                <td class="editable-cell" data-field="equipment_efficiency">{{ '{:.1f}'.format(record.equipment_efficiency) }}</td>
-                                                <td class="editable-cell" data-field="revenue_inr">₹{{ '{:.2f}'.format(record.revenue_inr) }}</td>
-                                                <td class="editable-cell" data-field="tariff_rate">{{ '{:.2f}'.format(record.tariff_rate) }}</td>
-                                                <td>
-                                                    <button class="btn btn-sm btn-danger" onclick="deleteRecord('energy', {{ record.id }})">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <div class="pagination-container">
-                                    <div class="records-info">
-                                        Showing {{ energy_data[:20]|length }} of {{ energy_data|length }} records
-                                    </div>
-                                    <nav>
-                                        <ul class="pagination pagination-sm">
-                                            <li class="page-item disabled"><a class="page-link">Previous</a></li>
-                                            <li class="page-item active"><a class="page-link">1</a></li>
-                                            <li class="page-item"><a class="page-link">2</a></li>
-                                            <li class="page-item"><a class="page-link">Next</a></li>
-                                        </ul>
-                                    </nav>
-                                </div>
-                            </div>
                         </div>
-
-                        <!-- Weather Data -->
-                        <div class="tab-pane fade" id="weather-data" role="tabpanel">
-                            <div class="data-table">
-                                <div class="table-header">
-                                    <h3><i class="fas fa-cloud-sun"></i> Weather Data Records</h3>
-                                    <div class="data-actions">
-                                        <button class="action-btn secondary" onclick="addWeatherRecord()">
-                                            <i class="fas fa-plus"></i> Add Record
-                                        </button>
-                                        <button class="action-btn warning" onclick="syncWeatherData()">
-                                            <i class="fas fa-sync"></i> Sync API
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead class="table-dark">
-                                            <tr>
-                                                <th>Date</th>
-                                                <th>Temperature (°C)</th>
-                                                <th>Humidity (%)</th>
-                                                <th>Cloud Cover (%)</th>
-                                                <th>Wind Speed (km/h)</th>
-                                                <th>Solar Irradiance</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for record in weather_data[:20] %}
-                                            <tr data-id="{{ record.id }}">
-                                                <td>{{ record.date.strftime('%Y-%m-%d') }}</td>
-                                                <td class="editable-cell" data-field="temperature">{{ '{:.1f}'.format(record.temperature) }}</td>
-                                                <td class="editable-cell" data-field="humidity">{{ '{:.1f}'.format(record.humidity) }}</td>
-                                                <td class="editable-cell" data-field="cloud_cover">{{ '{:.1f}'.format(record.cloud_cover) }}</td>
-                                                <td class="editable-cell" data-field="wind_speed">{{ '{:.1f}'.format(record.wind_speed) }}</td>
-                                                <td class="editable-cell" data-field="solar_irradiance">{{ '{:.2f}'.format(record.solar_irradiance) }}</td>
-                                                <td>
-                                                    <button class="btn btn-sm btn-danger" onclick="deleteRecord('weather', {{ record.id }})">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+                    </div>
+                    
+                    <div class="section-content">
+                        <div class="table-container">
+                            <table class="table" id="energyTable">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Energy (kWh)</th>
+                                        <th>Efficiency (%)</th>
+                                        <th>Revenue (₹)</th>
+                                        <th>Tariff Rate</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for record in energy_data[:20] %}
+                                    <tr data-id="{{ record.id }}">
+                                        <td>{{ record.date.strftime('%Y-%m-%d') }}</td>
+                                        <td class="editable-cell" data-field="energy_produced">{{ '{:.2f}'.format(record.energy_produced) }}</td>
+                                        <td class="editable-cell" data-field="equipment_efficiency">{{ '{:.1f}'.format(record.equipment_efficiency) }}</td>
+                                        <td class="editable-cell" data-field="revenue_inr">₹{{ '{:.2f}'.format(record.revenue_inr) }}</td>
+                                        <td class="editable-cell" data-field="tariff_rate">{{ '{:.2f}'.format(record.tariff_rate) }}</td>
+                                        <td>
+                                            <button class="btn btn-sm" style="background: var(--danger); color: white;" onclick="deleteRecord('energy', {{ record.id }})">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
-
-                        <!-- Maintenance Records -->
-                        <div class="tab-pane fade" id="maintenance-data" role="tabpanel">
-                            <div class="data-table">
-                                <div class="table-header">
-                                    <h3><i class="fas fa-tools"></i> Maintenance Records</h3>
-                                    <div class="data-actions">
-                                        <button class="action-btn secondary" onclick="addMaintenanceRecord()">
-                                            <i class="fas fa-plus"></i> Add Record
-                                        </button>
-                                        <button class="action-btn success" onclick="schedulePreventiveMaintenance()">
-                                            <i class="fas fa-calendar"></i> Schedule
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead class="table-dark">
-                                            <tr>
-                                                <th>Date</th>
-                                                <th>Type</th>
-                                                <th>Description</th>
-                                                <th>Cost (₹)</th>
-                                                <th>Efficiency Impact</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for record in maintenance_data %}
-                                            <tr data-id="{{ record.id }}">
-                                                <td>{{ record.date.strftime('%Y-%m-%d') }}</td>
-                                                <td class="editable-cell" data-field="maintenance_type">{{ record.maintenance_type }}</td>
-                                                <td class="editable-cell" data-field="description">{{ record.description or 'N/A' }}</td>
-                                                <td class="editable-cell" data-field="cost_inr">₹{{ '{:.2f}'.format(record.cost_inr) }}</td>
-                                                <td class="editable-cell" data-field="efficiency_impact">{{ '{:.1f}'.format(record.efficiency_impact) }}%</td>
-                                                <td>
-                                                    <button class="btn btn-sm btn-danger" onclick="deleteRecord('maintenance', {{ record.id }})">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Plant Settings -->
-                        <div class="tab-pane fade" id="plant-data" role="tabpanel">
-                            <div class="content-section">
-                                <div class="section-header">
-                                    <h2 class="section-title">
-                                        <i class="fas fa-cog"></i>
-                                        Plant Configuration
-                                    </h2>
-                                </div>
-                                
-                                <form id="plantSettingsForm">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label class="form-label">Plant Name</label>
-                                                <input type="text" class="form-control" value="{{ plant.name }}" name="name">
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label">Location</label>
-                                                <input type="text" class="form-control" value="{{ plant.location }}" name="location">
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label">Capacity (MW)</label>
-                                                <input type="number" step="0.1" class="form-control" value="{{ plant.capacity_mw }}" name="capacity_mw">
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label class="form-label">Panel Type</label>
-                                                <select class="form-control" name="panel_type">
-                                                    <option value="Monocrystalline" {% if plant.panel_type == 'Monocrystalline' %}selected{% endif %}>Monocrystalline</option>
-                                                    <option value="Polycrystalline" {% if plant.panel_type == 'Polycrystalline' %}selected{% endif %}>Polycrystalline</option>
-                                                    <option value="Thin Film" {% if plant.panel_type == 'Thin Film' %}selected{% endif %}>Thin Film</option>
-                                                </select>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label">Efficiency Rating (%)</label>
-                                                <input type="number" step="0.1" class="form-control" value="{{ plant.efficiency_rating }}" name="efficiency_rating">
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label">Installation Date</label>
-                                                <input type="date" class="form-control" value="{{ plant.installation_date }}" name="installation_date">
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="text-end">
-                                        <button type="button" class="action-btn secondary" onclick="resetForm()">
-                                            <i class="fas fa-undo"></i> Reset
-                                        </button>
-                                        <button type="submit" class="action-btn primary">
-                                            <i class="fas fa-save"></i> Save Settings
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
+                        <div class="mt-3 text-sm opacity-75">
+                            Showing {{ energy_data[:20]|length }} of {{ energy_data|length }} records
                         </div>
                     </div>
                 </div>
-            </div>
-        </main>
-    </div>
-</div>
 
-<!-- Success/Error Messages -->
-<div class="toast-container position-fixed top-0 end-0 p-3">
-    <div id="successToast" class="toast align-items-center text-white bg-success border-0" role="alert">
-        <div class="d-flex">
-            <div class="toast-body">
-                Changes saved successfully!
+                <!-- Weather Data -->
+                <div class="tab-pane fade" id="weather-data" role="tabpanel">
+                    <div class="section-header">
+                        <h3 class="section-title">
+                            <i class="fas fa-cloud-sun"></i> Weather Data Records
+                        </h3>
+                        <div class="flex gap-2">
+                            <button class="btn btn-secondary btn-sm" onclick="addWeatherRecord()">
+                                <i class="fas fa-plus"></i> Add Record
+                            </button>
+                            <button class="btn btn-warning btn-sm" onclick="syncWeatherData()">
+                                <i class="fas fa-sync"></i> Sync API
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="section-content">
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Temperature (°C)</th>
+                                        <th>Humidity (%)</th>
+                                        <th>Cloud Cover (%)</th>
+                                        <th>Wind Speed (km/h)</th>
+                                        <th>Solar Irradiance</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for record in weather_data[:20] %}
+                                    <tr data-id="{{ record.id }}">
+                                        <td>{{ record.date.strftime('%Y-%m-%d') }}</td>
+                                        <td class="editable-cell" data-field="temperature">{{ '{:.1f}'.format(record.temperature) }}</td>
+                                        <td class="editable-cell" data-field="humidity">{{ '{:.1f}'.format(record.humidity) }}</td>
+                                        <td class="editable-cell" data-field="cloud_cover">{{ '{:.1f}'.format(record.cloud_cover) }}</td>
+                                        <td class="editable-cell" data-field="wind_speed">{{ '{:.1f}'.format(record.wind_speed) }}</td>
+                                        <td class="editable-cell" data-field="solar_irradiance">{{ '{:.2f}'.format(record.solar_irradiance) }}</td>
+                                        <td>
+                                            <button class="btn btn-sm" style="background: var(--danger); color: white;" onclick="deleteRecord('weather', {{ record.id }})">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Maintenance Records -->
+                <div class="tab-pane fade" id="maintenance-data" role="tabpanel">
+                    <div class="section-header">
+                        <h3 class="section-title">
+                            <i class="fas fa-tools"></i> Maintenance Records
+                        </h3>
+                        <div class="flex gap-2">
+                            <button class="btn btn-secondary btn-sm" onclick="addMaintenanceRecord()">
+                                <i class="fas fa-plus"></i> Add Record
+                            </button>
+                            <button class="btn btn-success btn-sm" onclick="schedulePreventiveMaintenance()">
+                                <i class="fas fa-calendar"></i> Schedule
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="section-content">
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Description</th>
+                                        <th>Cost (₹)</th>
+                                        <th>Efficiency Impact</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for record in maintenance_data %}
+                                    <tr data-id="{{ record.id }}">
+                                        <td>{{ record.date.strftime('%Y-%m-%d') }}</td>
+                                        <td class="editable-cell" data-field="maintenance_type">{{ record.maintenance_type }}</td>
+                                        <td class="editable-cell" data-field="description">{{ record.description or 'N/A' }}</td>
+                                        <td class="editable-cell" data-field="cost_inr">₹{{ '{:.2f}'.format(record.cost_inr) }}</td>
+                                        <td class="editable-cell" data-field="efficiency_impact">{{ '{:.1f}'.format(record.efficiency_impact) }}%</td>
+                                        <td>
+                                            <button class="btn btn-sm" style="background: var(--danger); color: white;" onclick="deleteRecord('maintenance', {{ record.id }})">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Plant Settings -->
+                <div class="tab-pane fade" id="plant-data" role="tabpanel">
+                    <div class="section-header">
+                        <h3 class="section-title">
+                            <i class="fas fa-cog"></i> Plant Configuration
+                        </h3>
+                    </div>
+                    
+                    <div class="section-content">
+                        <form id="plantSettingsForm" class="content-grid" style="grid-template-columns: 1fr 1fr; gap: 2rem;">
+                            <div>
+                                <div class="mb-3">
+                                    <label class="form-label font-semibold">Plant Name</label>
+                                    <input type="text" class="form-control" value="{{ plant.name }}" name="name" style="padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: var(--radius); width: 100%;">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label font-semibold">Location</label>
+                                    <input type="text" class="form-control" value="{{ plant.location }}" name="location" style="padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: var(--radius); width: 100%;">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label font-semibold">Capacity (MW)</label>
+                                    <input type="number" step="0.1" class="form-control" value="{{ plant.capacity_mw }}" name="capacity_mw" style="padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: var(--radius); width: 100%;">
+                                </div>
+                            </div>
+                            <div>
+                                <div class="mb-3">
+                                    <label class="form-label font-semibold">Panel Type</label>
+                                    <select class="form-control" name="panel_type" style="padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: var(--radius); width: 100%;">
+                                        <option value="Monocrystalline" {% if plant.panel_type == 'Monocrystalline' %}selected{% endif %}>Monocrystalline</option>
+                                        <option value="Polycrystalline" {% if plant.panel_type == 'Polycrystalline' %}selected{% endif %}>Polycrystalline</option>
+                                        <option value="Thin Film" {% if plant.panel_type == 'Thin Film' %}selected{% endif %}>Thin Film</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label font-semibold">Efficiency Rating (%)</label>
+                                    <input type="number" step="0.1" class="form-control" value="{{ plant.efficiency_rating }}" name="efficiency_rating" style="padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: var(--radius); width: 100%;">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label font-semibold">Installation Date</label>
+                                    <input type="date" class="form-control" value="{{ plant.installation_date }}" name="installation_date" style="padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: var(--radius); width: 100%;">
+                                </div>
+                            </div>
+                            <div style="grid-column: span 2; text-align: right;">
+                                <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                                    <i class="fas fa-undo"></i> Reset
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Settings
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
         </div>
-    </div>
-    <div id="errorToast" class="toast align-items-center text-white bg-danger border-0" role="alert">
-        <div class="d-flex">
-            <div class="toast-body">
-                Error saving changes. Please try again.
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-        </div>
-    </div>
+    </main>
 </div>
 {% endblock %}
 
@@ -461,6 +367,7 @@ let changedCells = new Map();
 
 document.addEventListener('DOMContentLoaded', function() {
     initializeDataEditor();
+    console.log('Clean Data Editor initialized');
 });
 
 function initializeDataEditor() {
@@ -514,7 +421,7 @@ function editCell(cell) {
             }
             changedCells.get(recordId)[field] = newValue;
             
-            cell.style.backgroundColor = '#fff3cd';
+            cell.classList.add('changed-cell');
         } else {
             cell.innerHTML = originalValue;
         }
@@ -533,7 +440,7 @@ function editCell(cell) {
 
 function saveAllChanges() {
     if (changedCells.size === 0) {
-        showToast('No changes to save', 'info');
+        showToast('No changes to save');
         return;
     }
     
@@ -552,18 +459,17 @@ function saveAllChanges() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showToast('Changes saved successfully!', 'success');
+            showToast('Changes saved successfully!');
             changedCells.clear();
-            // Reset cell backgrounds
-            document.querySelectorAll('.editable-cell[style]').forEach(cell => {
-                cell.style.backgroundColor = '';
+            document.querySelectorAll('.changed-cell').forEach(cell => {
+                cell.classList.remove('changed-cell');
             });
         } else {
-            showToast('Error saving changes: ' + data.message, 'error');
+            showToast('Error saving changes: ' + data.message);
         }
     })
     .catch(error => {
-        showToast('Error saving changes', 'error');
+        showToast('Error saving changes');
     });
 }
 
@@ -578,39 +484,25 @@ function deleteRecord(type, id) {
         if (data.success) {
             location.reload();
         } else {
-            showToast('Error deleting record: ' + data.message, 'error');
+            showToast('Error deleting record: ' + data.message);
         }
     });
 }
 
 function addEnergyRecord() {
-    // Implementation for adding new energy record
-    showToast('Add energy record functionality - coming soon!', 'info');
+    showToast('Add energy record functionality - coming soon!');
 }
 
 function addWeatherRecord() {
-    // Implementation for adding new weather record
-    showToast('Add weather record functionality - coming soon!', 'info');
+    showToast('Add weather record functionality - coming soon!');
 }
 
 function addMaintenanceRecord() {
-    // Implementation for adding new maintenance record
-    showToast('Add maintenance record functionality - coming soon!', 'info');
-}
-
-function filterEnergyData() {
-    // Implementation for filtering energy data
-    showToast('Filter functionality - coming soon!', 'info');
-}
-
-function clearFilters() {
-    document.querySelectorAll('.filter-input').forEach(input => {
-        input.value = '';
-    });
+    showToast('Add maintenance record functionality - coming soon!');
 }
 
 function syncWeatherData() {
-    showToast('Syncing weather data...', 'info');
+    showToast('Syncing weather data...');
     
     fetch('/api/sync_weather/{{ plant.id }}', {
         method: 'POST'
@@ -620,13 +512,13 @@ function syncWeatherData() {
         if (data.success) {
             location.reload();
         } else {
-            showToast('Error syncing weather data', 'error');
+            showToast('Error syncing weather data');
         }
     });
 }
 
 function schedulePreventiveMaintenance() {
-    showToast('Preventive maintenance scheduling - coming soon!', 'info');
+    showToast('Preventive maintenance scheduling - coming soon!');
 }
 
 function savePlantSettings() {
@@ -643,9 +535,9 @@ function savePlantSettings() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showToast('Plant settings saved successfully!', 'success');
+            showToast('Plant settings saved successfully!');
         } else {
-            showToast('Error saving plant settings', 'error');
+            showToast('Error saving plant settings');
         }
     });
 }
@@ -654,14 +546,27 @@ function resetForm() {
     document.getElementById('plantSettingsForm').reset();
 }
 
-function showToast(message, type) {
-    const toastId = type === 'success' ? 'successToast' : 'errorToast';
-    const toast = document.getElementById(toastId);
-    const toastBody = toast.querySelector('.toast-body');
-    toastBody.textContent = message;
+function showToast(message) {
+    // Simple toast notification
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        top: 2rem;
+        right: 2rem;
+        background: var(--primary);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-lg);
+        z-index: 9999;
+        animation: slideIn 0.3s ease;
+    `;
+    toast.textContent = message;
+    document.body.appendChild(toast);
     
-    const bsToast = new bootstrap.Toast(toast);
-    bsToast.show();
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
 }
 </script>
 {% endblock %}

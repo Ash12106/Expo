@@ -3,218 +3,200 @@
 {% block title %}Dashboard - {{ plant.name }} | VVCE Solar ML Predictor{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard-layout.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/clean-layout.css') }}">
 {% endblock %}
 
 {% block content %}
-<div class="dashboard-container">
-    <div class="dashboard-layout">
-        <!-- Sidebar -->
-        <aside class="dashboard-sidebar">
-            <div class="sidebar-content">
-                <div class="sidebar-header">
-                    <h5 class="sidebar-title">
-                        <i class="fas fa-solar-panel"></i>
-                        Solar Plants
-                    </h5>
-                    <span class="sidebar-subtitle">VVCE Campus</span>
+<div class="app-container">
+    <!-- Sidebar -->
+    <aside class="app-sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-title">
+                <i class="fas fa-solar-panel"></i>
+                Solar Plants
+            </div>
+            <div class="sidebar-subtitle">VVCE Campus</div>
+        </div>
+        
+        <div class="plant-list">
+            {% for p in all_plants %}
+            <a href="{{ url_for('dashboard', plant_id=p.id) }}" 
+               class="plant-item {% if p.id == plant.id %}active{% endif %}">
+                <div class="plant-name">{{ p.name }}</div>
+                <div class="plant-details">
+                    <div class="plant-location">
+                        <i class="fas fa-map-marker-alt"></i>
+                        {{ p.location }}
+                    </div>
+                    <div class="plant-capacity">
+                        <i class="fas fa-bolt"></i>
+                        {{ p.capacity_mw }} MW
+                    </div>
                 </div>
-                
-                <nav class="plant-navigation">
-                    {% for p in all_plants %}
-                    <a href="{{ url_for('dashboard', plant_id=p.id) }}" 
-                       class="plant-nav-item {% if p.id == plant.id %}active{% endif %}">
-                        <div class="plant-nav-content">
-                            <div class="plant-nav-info">
-                                <h6 class="plant-nav-name">{{ p.name }}</h6>
-                                <div class="plant-nav-details">
-                                    <span class="plant-nav-location">
-                                        <i class="fas fa-map-marker-alt"></i>{{ p.location }}
-                                    </span>
-                                    <span class="plant-nav-capacity">
-                                        <i class="fas fa-bolt"></i>{{ p.capacity_mw }} MW
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="plant-nav-status">
-                                <span class="status-dot active"></span>
-                            </div>
-                        </div>
+            </a>
+            {% endfor %}
+        </div>
+        
+        <div class="sidebar-footer">
+            <i class="fas fa-building"></i>
+            {{ all_plants|length }} Total Plants
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-solar-panel" style="color: #f59e0b;"></i>
+                {{ plant.name }}
+            </h1>
+            <p class="page-subtitle">
+                <i class="fas fa-map-marker-alt"></i> {{ plant.location }} •
+                <i class="fas fa-bolt"></i> {{ plant.capacity_mw }} MW Capacity •
+                <i class="fas fa-calendar"></i> Installed {{ plant.installation_date.strftime('%B %Y') }}
+            </p>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                </div>
+                <div class="stat-value">{{ '{:.1f}'.format(current_efficiency or 15.8) }}%</div>
+                <div class="stat-label">System Efficiency</div>
+            </div>
+
+            <div class="stat-card success">
+                <div class="stat-header">
+                    <div class="stat-icon success">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                </div>
+                <div class="stat-value">{{ '{:.1f}'.format(today_production or 42.3) }}</div>
+                <div class="stat-label">Today's Energy (kWh)</div>
+            </div>
+
+            <div class="stat-card warning">
+                <div class="stat-header">
+                    <div class="stat-icon warning">
+                        <i class="fas fa-rupee-sign"></i>
+                    </div>
+                </div>
+                <div class="stat-value">₹{{ '{:,.0f}'.format(today_revenue or 2540) }}</div>
+                <div class="stat-label">Today's Revenue</div>
+            </div>
+
+            <div class="stat-card" style="border-top-color: #06b6d4;">
+                <div class="stat-header">
+                    <div class="stat-icon" style="background: #06b6d4;">
+                        <i class="fas fa-cloud-sun"></i>
+                    </div>
+                </div>
+                <div class="stat-value">{{ current_weather.temperature or 28 }}°C</div>
+                <div class="stat-label">Current Temperature</div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="chart-box">
+            <div class="chart-header">
+                <h2 class="chart-title">
+                    <i class="fas fa-chart-line"></i>
+                    Energy Production Trends
+                </h2>
+                <div class="flex gap-2">
+                    <button class="btn btn-secondary btn-sm" onclick="refreshCharts()">
+                        <i class="fas fa-sync-alt"></i>
+                        Refresh
+                    </button>
+                    <a href="{{ url_for('predictions', plant_id=plant.id) }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-crystal-ball"></i>
+                        View Predictions
                     </a>
-                    {% endfor %}
-                </nav>
-                
-                <div class="sidebar-footer">
-                    <div class="plant-count">
-                        <i class="fas fa-building"></i>
-                        <span>{{ all_plants|length }} Total Plants</span>
+                </div>
+            </div>
+            <div class="chart-content">
+                <canvas id="productionChart"></canvas>
+            </div>
+        </div>
+
+        <div class="content-grid" style="grid-template-columns: 1fr 1fr; gap: 2rem;">
+            <!-- Revenue Chart -->
+            <div class="chart-box">
+                <div class="chart-header">
+                    <h2 class="chart-title">
+                        <i class="fas fa-rupee-sign"></i>
+                        Revenue Analytics
+                    </h2>
+                </div>
+                <div class="chart-content">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Efficiency Chart -->
+            <div class="chart-box">
+                <div class="chart-header">
+                    <h2 class="chart-title">
+                        <i class="fas fa-cogs"></i>
+                        System Performance
+                    </h2>
+                </div>
+                <div class="chart-content">
+                    <canvas id="efficiencyChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Cards -->
+        <div class="content-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-brain"></i>
+                    Machine Learning Models
+                </h2>
+            </div>
+            <div class="section-content">
+                <div class="action-grid">
+                    <div class="action-card">
+                        <button class="btn btn-primary" onclick="trainRealisticModel('{{ plant.id }}')">
+                            <i class="fas fa-brain"></i>
+                            Train Physics Model
+                        </button>
+                        <p class="text-sm opacity-75 mt-2">Using real weather data</p>
+                    </div>
+                    
+                    <div class="action-card">
+                        <button class="btn btn-success" onclick="generateRealisticPredictions('{{ plant.id }}')">
+                            <i class="fas fa-chart-line"></i>
+                            Generate Forecasts
+                        </button>
+                        <p class="text-sm opacity-75 mt-2">6-month predictions</p>
+                    </div>
+                    
+                    <div class="action-card">
+                        <a href="{{ url_for('analytics_dashboard', plant_id=plant.id) }}" class="btn" style="background: #06b6d4; color: white;">
+                            <i class="fas fa-chart-pie"></i>
+                            Advanced Analytics
+                        </a>
+                        <p class="text-sm opacity-75 mt-2">Detailed insights</p>
+                    </div>
+                    
+                    <div class="action-card">
+                        <a href="{{ url_for('data_editor', plant_id=plant.id) }}" class="btn btn-warning">
+                            <i class="fas fa-edit"></i>
+                            Data Editor
+                        </a>
+                        <p class="text-sm opacity-75 mt-2">Manage data</p>
                     </div>
                 </div>
             </div>
-        </aside>
-
-        <!-- Main Dashboard -->
-        <main class="dashboard-main">
-            <div class="dashboard-content">
-                <!-- Page Header -->
-                <header class="page-header">
-                    <h1 class="page-title">
-                        <i class="fas fa-solar-panel"></i>
-                        {{ plant.name }}
-                    </h1>
-                    <p class="page-subtitle">
-                        <i class="fas fa-map-marker-alt"></i> {{ plant.location }}
-                        &nbsp;•&nbsp;
-                        <i class="fas fa-bolt"></i> {{ plant.capacity_mw }} MW Capacity
-                        &nbsp;•&nbsp;
-                        <i class="fas fa-calendar"></i> Installed {{ plant.installation_date.strftime('%B %Y') }}
-                    </p>
-                </header>
-
-                <!-- Statistics Grid -->
-                <div class="stats-grid">
-                    <div class="stat-card primary">
-                        <div class="stat-header">
-                            <div class="stat-icon primary">
-                                <i class="fas fa-percentage"></i>
-                            </div>
-                        </div>
-                        <div class="stat-value">{{ '{:.1f}'.format(current_efficiency or 15.8) }}%</div>
-                        <div class="stat-label">System Efficiency</div>
-                    </div>
-
-                    <div class="stat-card success">
-                        <div class="stat-header">
-                            <div class="stat-icon success">
-                                <i class="fas fa-bolt"></i>
-                            </div>
-                        </div>
-                        <div class="stat-value">{{ '{:.1f}'.format(today_production or 42.3) }}</div>
-                        <div class="stat-label">Today's Energy (kWh)</div>
-                    </div>
-
-                    <div class="stat-card warning">
-                        <div class="stat-header">
-                            <div class="stat-icon warning">
-                                <i class="fas fa-rupee-sign"></i>
-                            </div>
-                        </div>
-                        <div class="stat-value">₹{{ '{:,.0f}'.format(today_revenue or 2540) }}</div>
-                        <div class="stat-label">Today's Revenue</div>
-                    </div>
-
-                    <div class="stat-card info">
-                        <div class="stat-header">
-                            <div class="stat-icon info">
-                                <i class="fas fa-cloud-sun"></i>
-                            </div>
-                        </div>
-                        <div class="stat-value">{{ current_weather.temperature or 28 }}°C</div>
-                        <div class="stat-label">Current Temperature</div>
-                    </div>
-                </div>
-
-                <!-- Content Grid -->
-                <div class="content-grid">
-                    <!-- Energy Production Chart -->
-                    <section class="content-section">
-                        <div class="section-header">
-                            <h2 class="section-title">
-                                <i class="fas fa-chart-line"></i>
-                                Energy Production Trends
-                            </h2>
-                            <div class="section-actions">
-                                <button class="action-btn secondary" onclick="refreshCharts()">
-                                    <i class="fas fa-sync-alt"></i>
-                                    Refresh
-                                </button>
-                                <a href="{{ url_for('predictions', plant_id=plant.id) }}" class="action-btn primary">
-                                    <i class="fas fa-crystal-ball"></i>
-                                    View Predictions
-                                </a>
-                            </div>
-                        </div>
-                        <div class="chart-container">
-                            <canvas id="productionChart"></canvas>
-                        </div>
-                    </section>
-
-                    <!-- Revenue Analytics -->
-                    <section class="content-section">
-                        <div class="section-header">
-                            <h2 class="section-title">
-                                <i class="fas fa-chart-bar"></i>
-                                Revenue Analytics
-                            </h2>
-                            <div class="section-actions">
-                                <button class="action-btn secondary" onclick="exportData()">
-                                    <i class="fas fa-download"></i>
-                                    Export
-                                </button>
-                            </div>
-                        </div>
-                        <div class="chart-container">
-                            <canvas id="revenueChart"></canvas>
-                        </div>
-                    </section>
-
-                    <!-- System Performance -->
-                    <section class="content-section">
-                        <div class="section-header">
-                            <h2 class="section-title">
-                                <i class="fas fa-cogs"></i>
-                                System Performance
-                            </h2>
-                            <div class="section-actions">
-                                <button class="action-btn warning" onclick="refreshWeather('{{ plant.id }}')">
-                                    <i class="fas fa-cloud-sun"></i>
-                                    Update Weather
-                                </button>
-                            </div>
-                        </div>
-                        <div class="chart-container">
-                            <canvas id="efficiencyChart"></canvas>
-                        </div>
-                    </section>
-
-                    <!-- ML Model Actions -->
-                    <section class="content-section">
-                        <div class="section-header">
-                            <h2 class="section-title">
-                                <i class="fas fa-brain"></i>
-                                Machine Learning Models
-                            </h2>
-                        </div>
-                        <div class="content-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--spacing-lg);">
-                            <button class="action-btn primary" onclick="trainRealisticModel('{{ plant.id }}')">
-                                <i class="fas fa-brain"></i>
-                                Train Physics Model
-                                <small style="display: block; margin-top: 0.25rem; opacity: 0.8;">Using real weather data</small>
-                            </button>
-                            
-                            <button class="action-btn success" onclick="generateRealisticPredictions('{{ plant.id }}')">
-                                <i class="fas fa-chart-line"></i>
-                                Generate Forecasts
-                                <small style="display: block; margin-top: 0.25rem; opacity: 0.8;">6-month predictions</small>
-                            </button>
-                            
-                            <a href="{{ url_for('analytics_dashboard', plant_id=plant.id) }}" class="action-btn info">
-                                <i class="fas fa-chart-pie"></i>
-                                Advanced Analytics
-                                <small style="display: block; margin-top: 0.25rem; opacity: 0.8;">Detailed insights</small>
-                            </a>
-                            
-                            <a href="{{ url_for('data_editor', plant_id=plant.id) }}" class="action-btn warning">
-                                <i class="fas fa-edit"></i>
-                                Data Editor
-                                <small style="display: block; margin-top: 0.25rem; opacity: 0.8;">Manage data</small>
-                            </a>
-                        </div>
-                    </section>
-                </div>
-            </div>
-        </main>
-    </div>
+        </div>
+    </main>
 </div>
 
 <!-- Loading Modal -->
@@ -235,9 +217,7 @@
 
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
-<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 <script type="text/javascript">
-// Initialize dashboard when page loads
 document.addEventListener('DOMContentLoaded', function() {
     const plantId = '{{ plant.id }}';
     
@@ -246,22 +226,14 @@ document.addEventListener('DOMContentLoaded', function() {
         initializeCharts(plantId);
     }
     
-    // Initialize dashboard
-    if (typeof SolarDashboard !== 'undefined') {
-        const dashboard = new SolarDashboard();
-        dashboard.init();
-    }
+    console.log('Clean Dashboard initialized for plant:', plantId);
 });
 
-// Enhanced functions for new layout
 function refreshCharts() {
     showLoadingModal('Refreshing charts...');
-    location.reload();
-}
-
-function exportData() {
-    const plantId = '{{ plant.id }}';
-    window.open(`/api/export_data/${plantId}`, '_blank');
+    setTimeout(() => {
+        location.reload();
+    }, 1000);
 }
 
 function showLoadingModal(message) {
@@ -277,7 +249,6 @@ function hideLoadingModal() {
     }
 }
 
-// Enhanced ML model functions
 function trainRealisticModel(plantId) {
     showLoadingModal('Training physics-based ML model...');
     
@@ -320,25 +291,6 @@ function generateRealisticPredictions(plantId) {
             window.location.href = `/predictions/${plantId}`;
         } else {
             alert('Error generating predictions: ' + data.message);
-        }
-    })
-    .catch(error => {
-        hideLoadingModal();
-        alert('Error: ' + error.message);
-    });
-}
-
-function refreshWeather(plantId) {
-    showLoadingModal('Updating weather data...');
-    
-    fetch(`/api/weather/${plantId}`)
-    .then(response => response.json())
-    .then(data => {
-        hideLoadingModal();
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('Error updating weather: ' + data.message);
         }
     })
     .catch(error => {

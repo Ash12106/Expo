@@ -137,25 +137,26 @@ def data_editor(plant_id=None):
                 return redirect(url_for('index'))
             plant_id = plant.id
         
-        # Get recent production data (last 30 days) for editing
+        # Get data for editing
         end_date = date.today()
         start_date = end_date - timedelta(days=30)
         
-        production_data = db.session.query(
-            EnergyProduction.date,
-            EnergyProduction.energy_produced,
-            EnergyProduction.equipment_efficiency,
-            EnergyProduction.revenue_inr,
-            WeatherData.temperature,
-            WeatherData.solar_irradiance
-        ).join(
-            WeatherData, 
-            (EnergyProduction.plant_id == WeatherData.plant_id) & 
-            (EnergyProduction.date == WeatherData.date)
-        ).filter(
+        # Get energy production data
+        energy_data = EnergyProduction.query.filter(
             EnergyProduction.plant_id == plant_id,
             EnergyProduction.date >= start_date
         ).order_by(EnergyProduction.date.desc()).all()
+        
+        # Get weather data
+        weather_data = WeatherData.query.filter(
+            WeatherData.plant_id == plant_id,
+            WeatherData.date >= start_date
+        ).order_by(WeatherData.date.desc()).all()
+        
+        # Get maintenance data
+        maintenance_data = MaintenanceRecord.query.filter(
+            MaintenanceRecord.plant_id == plant_id
+        ).order_by(MaintenanceRecord.date.desc()).limit(50).all()
         
         # Get all plants for navigation
         all_plants = SolarPlant.query.all()
@@ -163,7 +164,9 @@ def data_editor(plant_id=None):
         return render_template('data_editor.html',
                              plant=plant,
                              all_plants=all_plants,
-                             production_data=production_data)
+                             energy_data=energy_data,
+                             weather_data=weather_data,
+                             maintenance_data=maintenance_data)
         
     except Exception as e:
         logging.error(f"Error in data editor route: {e}")
