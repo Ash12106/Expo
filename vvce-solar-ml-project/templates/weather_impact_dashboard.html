@@ -459,7 +459,7 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="card border-0 shadow-lg">
-                <div class="card-header bg-gradient-primary text-white py-3">
+                <div class="card-header bg-primary text-white py-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h4 class="mb-1">
@@ -493,22 +493,18 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for hour in range(24) %}
-                                {% set hour_time = '%02d:00'|format(hour) %}
-                                {% set is_current = false %}
-                                {% set is_peak = hour >= 10 and hour <= 14 %}
-                                
-                                {% if hour >= 6 and hour <= 18 %}
-                                    {% set impact_score = 65 + ((hour - 6) * 3) if hour <= 12 else 95 - ((hour - 12) * 4) %}
-                                    {% set output = 400 + ((hour - 6) * 80) if hour <= 12 else 880 - ((hour - 12) * 60) %}
-                                {% else %}
-                                    {% set impact_score = 20 + (hour * 2) if hour < 6 else 35 - ((hour - 18) * 2) %}
-                                    {% set output = 50 + (hour * 15) if hour < 6 else 140 - ((hour - 18) * 20) %}
-                                {% endif %}
-                                
-                                {% set temperature = 22 + (hour * 0.8) if hour <= 14 else 33 - ((hour - 14) * 0.6) %}
-                                {% set clouds = 25 + (hour % 8) * 3 %}
-                                {% set revenue = (output * 4.5)|round|int %}
+                                {% if forecast_impact and forecast_impact.hourly_impacts %}
+                                    {% for hour_data in forecast_impact.hourly_impacts %}
+                                    {% set hour_time = hour_data.hour %}
+                                    {% set hour_num = hour_time.split(':')[0]|int %}
+                                    {% set is_current = false %}
+                                    {% set is_peak = hour_num >= 10 and hour_num <= 14 %}
+                                    
+                                    {% set impact_score = (hour_data.impact_score * 100)|round|int %}
+                                    {% set output = hour_data.predicted_output|round|int %}
+                                    {% set temperature = hour_data.weather.temperature|round|int if hour_data.weather.temperature else 25 %}
+                                    {% set clouds = hour_data.weather.cloud_cover|round|int if hour_data.weather.cloud_cover else 30 %}
+                                    {% set revenue = (output * 4.5)|round|int %}
                                 
                                 {% if impact_score >= 85 %}
                                     {% set status_class = 'success' %}
@@ -527,6 +523,76 @@
                                     {% set status_text = 'Poor' %}
                                     {% set status_icon = 'cloud-rain' %}
                                 {% endif %}
+                                
+                                <tr class="forecast-row {% if is_peak %}table-light{% endif %}" data-hour="{{ hour_num }}">
+                                    <td class="px-4 py-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="badge bg-danger me-2 pulse current-hour-badge" style="display: none;">NOW</div>
+                                            <span class="fw-semibold fs-6">{{ hour_time }}</span>
+                                        </div>
+                                    </td>
+                                    
+                                    <td class="text-center px-3 py-3">
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <div class="progress-circle me-2" style="--progress: {{ impact_score }}%; --color: var(--bs-{{ status_class }});">
+                                                <span class="progress-value">{{ impact_score }}%</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    
+                                    <td class="text-center px-3 py-3">
+                                        <div class="metric-display">
+                                            <i class="fas fa-bolt text-warning me-1"></i>
+                                            <span class="fw-bold">{{ output }}</span>
+                                            <small class="text-muted">kWh</small>
+                                        </div>
+                                    </td>
+                                    
+                                    <td class="text-center px-3 py-3">
+                                        <div class="metric-display">
+                                            <i class="fas fa-thermometer-half text-info me-1"></i>
+                                            <span class="fw-bold">{{ temperature|round|int }}</span>
+                                            <small class="text-muted">°C</small>
+                                        </div>
+                                    </td>
+                                    
+                                    <td class="text-center px-3 py-3">
+                                        <div class="metric-display">
+                                            <i class="fas fa-cloud text-secondary me-1"></i>
+                                            <span class="fw-bold">{{ clouds|round|int }}</span>
+                                            <small class="text-muted">%</small>
+                                        </div>
+                                    </td>
+                                    
+                                    <td class="text-center px-3 py-3">
+                                        <div class="metric-display">
+                                            <i class="fas fa-rupee-sign text-success me-1"></i>
+                                            <span class="fw-bold">{{ revenue|round|int }}</span>
+                                        </div>
+                                    </td>
+                                    
+                                    <td class="text-center px-3 py-3">
+                                        <span class="badge bg-{{ status_class }} d-inline-flex align-items-center">
+                                            <i class="fas fa-{{ status_icon }} me-1"></i>
+                                            {{ status_text }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <!-- Fallback if no forecast data -->
+                                {% for hour in range(24) %}
+                                {% set hour_time = '%02d:00'|format(hour) %}
+                                {% set is_current = false %}
+                                {% set is_peak = hour >= 10 and hour <= 14 %}
+                                {% set impact_score = 75 %}
+                                {% set output = 600 %}
+                                {% set temperature = 28 %}
+                                {% set clouds = 35 %}
+                                {% set revenue = (output * 4.5)|round|int %}
+                                {% set status_class = 'primary' %}
+                                {% set status_text = 'Good' %}
+                                {% set status_icon = 'cloud-sun' %}
                                 
                                 <tr class="forecast-row {% if is_peak %}table-light{% endif %}" data-hour="{{ hour }}">
                                     <td class="px-4 py-3">
@@ -583,6 +649,7 @@
                                     </td>
                                 </tr>
                                 {% endfor %}
+                                {% endif %}
                             </tbody>
                         </table>
                     </div>
@@ -616,30 +683,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-                    
-                    {% if forecast_impact.summary %}
-                    <div class="mt-3 p-3 bg-light rounded">
-                        <h6>Forecast Summary</h6>
-                        <div class="row">
-                            <div class="col-md-3">
-                                <strong>Average Impact:</strong> {{ (forecast_impact.summary.average_impact_score * 100)|round|int }}%
-                            </div>
-                            <div class="col-md-3">
-                                <strong>Peak Hour:</strong> {{ forecast_impact.summary.peak_output_hour }}
-                            </div>
-                            <div class="col-md-3">
-                                <strong>Peak Output:</strong> {{ forecast_impact.summary.peak_output_value|round|int }} kWh
-                            </div>
-                            <div class="col-md-3">
-                                <strong>Outlook:</strong> {{ forecast_impact.summary.overall_outlook }}
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
