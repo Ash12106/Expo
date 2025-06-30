@@ -817,11 +817,12 @@ def weather_impact_dashboard(plant_id=None):
         # Get 24-hour forecast
         forecast_impact = weather_impact_predictor.get_hourly_forecast_impact(plant_id, 24)
         
-        return render_template('clean_weather_forecast.html',
+        return render_template('weather_impact_dashboard.html',
                              plants=plants,
                              selected_plant=selected_plant,
                              current_impact=current_impact,
-                             forecast_impact=forecast_impact)
+                             forecast_impact=forecast_impact,
+                             correlation_analysis=weather_impact_predictor.get_weather_correlation_analysis(plant_id, 30))
     
     except Exception as e:
         logging.error(f"Error in weather impact dashboard route: {e}")
