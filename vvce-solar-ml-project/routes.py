@@ -861,6 +861,35 @@ def modern_weather_forecast(plant_id=None):
         logging.error(f"Error in modern weather forecast: {e}")
         return redirect(url_for('index'))
 
+@app.route('/timeline-forecast')
+@app.route('/timeline-forecast/<int:plant_id>')
+def timeline_forecast(plant_id=None):
+    """Interactive timeline forecast dashboard"""
+    try:
+        plants = SolarPlant.query.all()
+        selected_plant = None
+        
+        if plant_id:
+            selected_plant = SolarPlant.query.get_or_404(plant_id)
+        elif plants:
+            selected_plant = plants[0]
+            plant_id = selected_plant.id
+        else:
+            return redirect(url_for('index'))
+        
+        current_impact = weather_impact_predictor.get_current_weather_impact(plant_id)
+        forecast_impact = weather_impact_predictor.get_hourly_forecast_impact(plant_id, 24)
+        
+        return render_template('modern_timeline_forecast.html',
+                             plants=plants,
+                             selected_plant=selected_plant,
+                             current_impact=current_impact,
+                             forecast_impact=forecast_impact)
+    
+    except Exception as e:
+        logging.error(f"Error in timeline forecast: {e}")
+        return redirect(url_for('index'))
+
 @app.errorhandler(500)
 def internal_error(error):
     db.session.rollback()

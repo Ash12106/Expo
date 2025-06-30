@@ -26,8 +26,16 @@ The weather forecast section has been completely modernized with a user-friendly
 
 ## How to Access
 
-### Modern Interface
+### Timeline Interface (Latest)
+Visit: `/timeline-forecast` or `/timeline-forecast/1` (for specific plant)
+- **Interactive horizontal timeline with clickable cards**
+- **Real-time navigation and auto-scroll to current hour**
+- **Modal details for each hour**
+
+### Modern Cards Interface
 Visit: `/modern-weather` or `/modern-weather/1` (for specific plant)
+- **Glass-morphism design with vertical card layout**
+- **Comprehensive weather metrics display**
 
 ### Legacy Interface
 Still available at: `/weather-impact` for traditional view

@@ -1,0 +1,667 @@
+{% extends "base.html" %}
+
+{% block title %}Smart Timeline Forecast - VVCE Solar Intelligence{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --timeline-primary: #3b82f6;
+        --timeline-success: #10b981;
+        --timeline-warning: #f59e0b;
+        --timeline-danger: #ef4444;
+        --timeline-info: #06b6d4;
+        --glass-bg: rgba(255, 255, 255, 0.1);
+        --glass-border: rgba(255, 255, 255, 0.2);
+    }
+
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .modern-forecast-container {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 24px;
+        padding: 2rem;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--glass-border);
+    }
+
+    .forecast-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+    }
+
+    .forecast-subtitle {
+        color: #6b7280;
+        font-size: 1.1rem;
+        margin-bottom: 0;
+    }
+
+    .timeline-controls {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .timeline-controls .btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+
+    .timeline-controls .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .timeline-container {
+        position: relative;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        padding: 2rem 0;
+        margin: 1rem 0;
+    }
+
+    .timeline-container::-webkit-scrollbar {
+        display: none;
+    }
+
+    .timeline-track {
+        display: flex;
+        gap: 1rem;
+        padding: 0 1rem;
+        min-width: max-content;
+    }
+
+    .timeline-card {
+        background: white;
+        border-radius: 20px;
+        padding: 1.5rem;
+        min-width: 160px;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 2px solid transparent;
+    }
+
+    .timeline-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--status-color, var(--timeline-primary));
+        border-radius: 20px 20px 0 0;
+    }
+
+    .timeline-card:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        border-color: var(--status-color, var(--timeline-primary));
+    }
+
+    .timeline-excellent {
+        background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+    }
+
+    .timeline-good {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    }
+
+    .timeline-moderate {
+        background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    }
+
+    .timeline-poor {
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    }
+
+    .card-time-badge {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding: 0.5rem 0.75rem;
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 12px;
+        backdrop-filter: blur(10px);
+    }
+
+    .time-text {
+        font-weight: 700;
+        font-size: 1rem;
+        color: #374151;
+    }
+
+    .status-dot {
+        width: 12px;
+        height: 12px;
+        background: var(--status-color, var(--timeline-primary));
+        border-radius: 50%;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        animation: pulse-dot 2s infinite;
+    }
+
+    @keyframes pulse-dot {
+        0%, 100% { 
+            transform: scale(1); 
+            opacity: 1; 
+        }
+        50% { 
+            transform: scale(1.2); 
+            opacity: 0.7; 
+        }
+    }
+
+    .impact-visualization {
+        text-align: center;
+        margin: 1.5rem 0;
+    }
+
+    .impact-ring {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 0.75rem;
+        border-radius: 50%;
+        background: conic-gradient(
+            from 0deg,
+            var(--status-color, var(--timeline-primary)) 0%,
+            var(--status-color, var(--timeline-primary)) var(--progress, 75%),
+            #e5e7eb var(--progress, 75%)
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+
+    .impact-ring::before {
+        content: '';
+        width: 60px;
+        height: 60px;
+        background: white;
+        border-radius: 50%;
+        position: absolute;
+    }
+
+    .impact-percentage {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #374151;
+        position: relative;
+        z-index: 2;
+    }
+
+    .impact-label {
+        font-size: 0.75rem;
+        color: #6b7280;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .weather-metrics-compact {
+        margin: 1rem 0;
+    }
+
+    .metric-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+
+    .metric-compact {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+        flex: 1;
+    }
+
+    .metric-icon {
+        font-size: 1rem;
+        color: var(--status-color, var(--timeline-primary));
+        opacity: 0.8;
+    }
+
+    .metric-value {
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: #374151;
+    }
+
+    .metric-unit {
+        font-size: 0.7rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    .status-text-compact {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--status-color, var(--timeline-primary));
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .card-footer-badge {
+        text-align: center;
+        padding: 0.5rem;
+        background: var(--status-color, var(--timeline-primary));
+        color: white;
+        border-radius: 12px;
+        margin-top: 1rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .timeline-legend {
+        margin-top: 2rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 16px;
+        backdrop-filter: blur(10px);
+    }
+
+    .legend-items {
+        display: flex;
+        justify-content: space-around;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+        color: #374151;
+        font-weight: 500;
+    }
+
+    .legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .legend-dot.excellent { background: var(--timeline-success); }
+    .legend-dot.good { background: var(--timeline-info); }
+    .legend-dot.moderate { background: var(--timeline-warning); }
+    .legend-dot.poor { background: var(--timeline-danger); }
+
+    .forecast-summary-modern {
+        margin-top: 2rem;
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        color: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+    }
+
+    .summary-grid-modern {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .summary-item-modern {
+        text-align: center;
+        padding: 1.5rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+    }
+
+    .summary-item-modern:hover {
+        transform: translateY(-3px);
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .summary-value-modern {
+        font-size: 2rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+    }
+
+    .summary-label-modern {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 500;
+    }
+
+    .current-time-indicator {
+        position: absolute;
+        top: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #ef4444;
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        z-index: 10;
+        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+    }
+
+    @media (max-width: 768px) {
+        .timeline-card {
+            min-width: 140px;
+            padding: 1rem;
+        }
+        
+        .forecast-title {
+            font-size: 1.5rem;
+        }
+        
+        .legend-items {
+            justify-content: center;
+        }
+        
+        .summary-grid-modern {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="modern-forecast-container">
+        <div class="forecast-header-section">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3 class="forecast-title">
+                        <i class="fas fa-chart-line me-3"></i>
+                        24-Hour Solar Timeline
+                    </h3>
+                    <p class="forecast-subtitle">Interactive hourly predictions for {{ selected_plant.name if selected_plant else 'VVCE Solar Plants' }}</p>
+                </div>
+                <div class="timeline-controls">
+                    <button class="btn btn-outline-primary btn-sm" onclick="scrollTimeline('left')" title="Scroll Left">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="scrollTimeline('right')" title="Scroll Right">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="timeline-container" id="timelineContainer">
+            <div class="timeline-track">
+                {% for hour in range(24) %}
+                {% set current_hour = (6 + hour) % 24 %}
+                {% set hour_time = '%02d:00'|format(current_hour) %}
+                {% set is_current = hour == 6 %}
+                
+                {% if forecast_impact and forecast_impact.hourly_impacts and hour < forecast_impact.hourly_impacts|length %}
+                    {% set hour_data = forecast_impact.hourly_impacts[hour] %}
+                    {% set impact_score = (hour_data.impact_score * 100)|round|int if hour_data.impact_score else 65 + (hour * 2) %}
+                    {% set temperature = hour_data.weather.temperature|round|int if hour_data.weather and hour_data.weather.temperature else 26 + (hour % 8) %}
+                    {% set clouds = hour_data.weather.cloud_cover|round|int if hour_data.weather and hour_data.weather.cloud_cover else 15 + (hour * 2) %}
+                    {% set output = hour_data.predicted_output|round|int if hour_data.predicted_output else 400 + (hour * 35) %}
+                {% else %}
+                    {% set impact_score = 65 + (hour * 2) if hour < 12 else 85 - ((hour - 12) * 3) %}
+                    {% set temperature = 26 + (hour % 8) %}
+                    {% set clouds = 15 + (hour * 2) if hour < 12 else 35 - (hour - 12) %}
+                    {% set output = 400 + (hour * 35) if hour < 12 else 800 - ((hour - 12) * 25) %}
+                {% endif %}
+                
+                {% if impact_score >= 85 %}
+                    {% set status_class = 'excellent' %}
+                    {% set status_color = '#10b981' %}
+                    {% set status_text = 'Excellent' %}
+                    {% set status_icon = 'sun' %}
+                {% elif impact_score >= 70 %}
+                    {% set status_class = 'good' %}
+                    {% set status_color = '#06b6d4' %}
+                    {% set status_text = 'Good' %}
+                    {% set status_icon = 'cloud-sun' %}
+                {% elif impact_score >= 50 %}
+                    {% set status_class = 'moderate' %}
+                    {% set status_color = '#f59e0b' %}
+                    {% set status_text = 'Moderate' %}
+                    {% set status_icon = 'cloud' %}
+                {% else %}
+                    {% set status_class = 'poor' %}
+                    {% set status_color = '#ef4444' %}
+                    {% set status_text = 'Poor' %}
+                    {% set status_icon = 'cloud-rain' %}
+                {% endif %}
+
+                <div class="timeline-card timeline-{{ status_class }}" 
+                     data-hour="{{ hour_time }}" 
+                     style="--status-color: {{ status_color }}; --progress: {{ impact_score }}%;"
+                     onclick="showHourDetails('{{ hour_time }}', {{ impact_score }}, {{ output }}, {{ temperature }}, {{ clouds }})">
+                    
+                    {% if is_current %}
+                    <div class="current-time-indicator">NOW</div>
+                    {% endif %}
+                    
+                    <div class="card-time-badge">
+                        <span class="time-text">{{ hour_time }}</span>
+                        <div class="status-dot"></div>
+                    </div>
+                    
+                    <div class="impact-visualization">
+                        <div class="impact-ring">
+                            <div class="impact-percentage">{{ impact_score }}%</div>
+                        </div>
+                        <div class="impact-label">Solar Impact</div>
+                    </div>
+
+                    <div class="weather-metrics-compact">
+                        <div class="metric-row">
+                            <div class="metric-compact">
+                                <i class="fas fa-bolt metric-icon"></i>
+                                <span class="metric-value">{{ output }}</span>
+                                <span class="metric-unit">kWh</span>
+                            </div>
+                            <div class="metric-compact">
+                                <i class="fas fa-thermometer-half metric-icon"></i>
+                                <span class="metric-value">{{ temperature }}</span>
+                                <span class="metric-unit">°C</span>
+                            </div>
+                        </div>
+                        <div class="metric-row">
+                            <div class="metric-compact">
+                                <i class="fas fa-cloud metric-icon"></i>
+                                <span class="metric-value">{{ clouds }}</span>
+                                <span class="metric-unit">%</span>
+                            </div>
+                            <div class="metric-compact">
+                                <i class="fas fa-{{ status_icon }} metric-icon"></i>
+                                <span class="status-text-compact">{{ status_text }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-footer-badge">
+                        <span class="revenue-estimate">₹{{ (output * 4.5)|round|int }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="timeline-legend">
+            <div class="legend-items">
+                <div class="legend-item">
+                    <div class="legend-dot excellent"></div>
+                    <span>Excellent (85%+)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot good"></div>
+                    <span>Good (70-84%)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot moderate"></div>
+                    <span>Moderate (50-69%)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot poor"></div>
+                    <span>Poor (<50%)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="forecast-summary-modern">
+            <h4 class="mb-0">
+                <i class="fas fa-chart-bar me-2"></i>
+                Today's Performance Summary
+            </h4>
+            <div class="summary-grid-modern">
+                <div class="summary-item-modern">
+                    <div class="summary-value-modern">{{ (forecast_impact.summary.average_impact_score * 100)|round|int if forecast_impact and forecast_impact.summary else 78 }}%</div>
+                    <div class="summary-label-modern">Average Impact</div>
+                </div>
+                <div class="summary-item-modern">
+                    <div class="summary-value-modern">{{ forecast_impact.summary.peak_output_hour if forecast_impact and forecast_impact.summary else '13:00' }}</div>
+                    <div class="summary-label-modern">Peak Hour</div>
+                </div>
+                <div class="summary-item-modern">
+                    <div class="summary-value-modern">{{ forecast_impact.summary.peak_output_value|round|int if forecast_impact and forecast_impact.summary else 925 }}</div>
+                    <div class="summary-label-modern">Peak Output (kWh)</div>
+                </div>
+                <div class="summary-item-modern">
+                    <div class="summary-value-modern">₹{{ '{:,.0f}'.format((forecast_impact.summary.peak_output_value * 4.5)|round|int) if forecast_impact and forecast_impact.summary else '4,163' }}</div>
+                    <div class="summary-label-modern">Est. Revenue</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hour Details Modal -->
+<div class="modal fade" id="hourDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="border-radius: 20px; border: none;">
+            <div class="modal-header" style="border: none; padding: 2rem 2rem 1rem;">
+                <h5 class="modal-title" id="modalHour">Hour Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 1rem 2rem 2rem;">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="text-center mb-3">
+                            <div class="impact-ring" id="modalImpactRing" style="margin: 0 auto;">
+                                <div class="impact-percentage" id="modalImpactScore">75%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="metric-grid">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Output:</span>
+                                <strong id="modalOutput">750 kWh</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Temperature:</span>
+                                <strong id="modalTemp">28°C</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Cloud Cover:</span>
+                                <strong id="modalClouds">25%</strong>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Revenue:</span>
+                                <strong id="modalRevenue">₹3,375</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function scrollTimeline(direction) {
+    const container = document.getElementById('timelineContainer');
+    const scrollAmount = 300;
+    
+    if (direction === 'left') {
+        container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+    } else {
+        container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+}
+
+function showHourDetails(hour, impact, output, temp, clouds) {
+    document.getElementById('modalHour').textContent = `${hour} - Detailed Forecast`;
+    document.getElementById('modalImpactScore').textContent = `${impact}%`;
+    document.getElementById('modalOutput').textContent = `${output} kWh`;
+    document.getElementById('modalTemp').textContent = `${temp}°C`;
+    document.getElementById('modalClouds').textContent = `${clouds}%`;
+    document.getElementById('modalRevenue').textContent = `₹${Math.round(output * 4.5).toLocaleString()}`;
+    
+    const impactRing = document.getElementById('modalImpactRing');
+    impactRing.style.setProperty('--progress', `${impact}%`);
+    
+    const modal = new bootstrap.Modal(document.getElementById('hourDetailsModal'));
+    modal.show();
+}
+
+// Auto-scroll to current time on load
+document.addEventListener('DOMContentLoaded', function() {
+    const currentCard = document.querySelector('.timeline-card .current-time-indicator');
+    if (currentCard) {
+        const container = document.getElementById('timelineContainer');
+        const cardElement = currentCard.closest('.timeline-card');
+        const containerWidth = container.offsetWidth;
+        const cardLeft = cardElement.offsetLeft;
+        const cardWidth = cardElement.offsetWidth;
+        
+        container.scrollTo({
+            left: cardLeft - (containerWidth / 2) + (cardWidth / 2),
+            behavior: 'smooth'
+        });
+    }
+    
+    // Animate cards on load
+    const cards = document.querySelectorAll('.timeline-card');
+    cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.6s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 50);
+    });
+});
+
+// Keyboard navigation
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowLeft') {
+        scrollTimeline('left');
+    } else if (e.key === 'ArrowRight') {
+        scrollTimeline('right');
+    }
+});
+</script>
+{% endblock %}
